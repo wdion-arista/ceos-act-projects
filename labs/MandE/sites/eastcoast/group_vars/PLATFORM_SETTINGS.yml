@@ -1,0 +1,4 @@
+# Platform Settings
+platform_settings:
+  - platforms: ['7280SR3-48YC8']
+    tcam_profile: qos

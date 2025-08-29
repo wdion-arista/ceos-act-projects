@@ -1,0 +1,19 @@
+---
+# deploy.yml
+
+- name: Build and Deploy Configs
+  hosts: "{{ target_hosts | default('FABRIC') }}"
+  gather_facts: false
+
+  vars:
+    global_vars_on: "True"
+  tasks:
+
+    - name: Import Global Vars
+      ansible.builtin.include_vars: "{{ item }}"
+      with_items:
+        - "../global_vars/global_dc_vars.yml"
+      when: global_vars_on == "True"
+    - name: Deploy Configurations to Devices
+      ansible.builtin.import_role:
+        name: arista.avd.eos_config_deploy_eapi

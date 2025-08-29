@@ -1,0 +1,248 @@
+---
+
+# Definition of connected endpoints in the fabric.
+
+generic_devices:
+
+##############################################
+# Switchport config for SW501-SITE5-B
+
+# WAN FROM SITE5 - BELL
+  - name: WAN SITE5 BELL
+    adapters:
+      - switch_ports:
+          - Ethernet1
+          - Ethernet2
+        switches: 
+          - SW501-SITE5-B
+          - SW501-SITE5-B
+        descriptions: 
+          - Bell Internet WAN IN - 15
+          - BU
+        profile: WAN_SITE5_BELL
+
+# JXSVideoTraffic
+  - name: JXSVideoTrafficBlue
+    # Definition of adapters on the server.
+    adapters:
+      - switch_ports:
+          - Ethernet11
+          - Ethernet12
+          - Ethernet15
+        switches: 
+          - SW501-SITE5-B
+          - SW501-SITE5-B
+          - SW501-SITE5-B
+        descriptions: 
+          - Appear JPEG XS SW 1 D2
+          - JPEG XS Standby
+          - Evertz
+        profile: JXSVideoTrafficBlue_site5
+
+# Pseudowire
+  - name: Pseudowire_25-Blue
+    adapters:
+      - switch_ports:
+          - Ethernet25
+        switches: 
+          - SW501-SITE5-B
+        descriptions: 
+          - DATA PATH to SITE1 1
+        profile: Pseudowire_Police_50
+
+  - name: Pseudowire_26-Blue
+    adapters:
+      - switch_ports:
+          - Ethernet26
+        switches: 
+          - SW501-SITE5-B
+        descriptions: 
+          - DATA PATH to SITE1 2
+        profile: Pseudowire_Police_50
+
+  - name: Pseudowire_27-Blue
+    adapters:
+      - switch_ports:
+          - Ethernet27
+        switches: 
+          - SW501-SITE5-B
+        descriptions: 
+          - DATA PATH to SITE1 3
+        profile: Pseudowire_Police_100
+
+  - name: Pseudowire_28-Blue
+    adapters:
+      - switch_ports:
+          - Ethernet28
+        switches: 
+          - SW501-SITE5-B
+        descriptions: 
+          - DATA PATH to SITE1 4
+        profile: Pseudowire_Police_500
+
+# Haivision
+  - name: HaivisionSRTTrafficBlue
+    adapters:
+      - switch_ports:
+          - Ethernet17
+          - Ethernet18
+          - Ethernet19
+          - Ethernet20
+          - Ethernet21
+        switches: 
+          - SW501-SITE5-B
+          - SW501-SITE5-B
+          - SW501-SITE5-B
+          - SW501-SITE5-B
+          - SW501-SITE5-B
+        descriptions: 
+          - Haivision Standby
+          - Haivision Standby
+          - Haivision Standby
+          - Haivision Standby
+          - Haivision Standby
+        profile: HaivisionSRTTrafficBlue_site5
+
+# EdgeDeviceControl
+  - name: EdgeDeviceControl-Blue
+    adapters:
+      - switch_ports:
+          - Ethernet29
+        switches: 
+          - SW501-SITE5-B
+        descriptions:
+          - Operations Standby
+        profile: EdgeDeviceControl_site5
+
+# Intercom
+  - name: Intercom-Blue
+    adapters:
+      - switch_ports:
+          - Ethernet30
+        switches: 
+          - SW501-SITE5-B
+        description: Intercom Standby 
+        profile: Intercom_site5
+
+
+##############################################
+# Switchport config for SW502-SITE5-R
+
+
+# WAN FROM SITE5 - ROGERS
+  - name: WAN SITE5 ROGERS
+    adapters:
+      - switch_ports:
+          - Ethernet1
+          - Ethernet2
+        switches: 
+          - SW502-SITE5-R
+          - SW502-SITE5-R
+        descriptions: 
+          - ROGERS Internet WAN IN
+          - BU
+        profile: WAN_SITE5_ROGERS
+
+# JXSVideoTraffic
+  - name: JXSVideoTrafficRed
+    # Definition of adapters on the server.
+    adapters:
+      - switch_ports:
+          - Ethernet11
+          - Ethernet12
+          - Ethernet15
+        switches: 
+          - SW502-SITE5-R
+          - SW502-SITE5-R
+          - SW502-SITE5-R
+        descriptions: 
+          - Appear JPEG XS SW 1 D2
+          - JPEG XS Standby
+          - Evertz
+        profile: JXSVideoTrafficRed_site5
+
+# Pseudowire Red
+  - name: Pseudowire_25-Red
+    adapters:
+      - switch_ports:
+          - Ethernet25
+        switches: 
+          - SW502-SITE5-R
+        descriptions: 
+          - DATA PATH to SITE1 5
+        profile: Pseudowire_Police_50
+
+  - name: Pseudowire_26-Red
+    adapters:
+      - switch_ports:
+          - Ethernet26
+        switches: 
+          - SW502-SITE5-R
+        descriptions: 
+          - DATA PATH to SITE1 6
+        profile: Pseudowire_Police_50
+
+  - name: Pseudowire_27-Red
+    adapters:
+      - switch_ports:
+          - Ethernet27
+        switches: 
+          - SW502-SITE5-R
+        descriptions: 
+          - DATA PATH to SITE1 7
+        profile: Pseudowire_Police_100
+
+  - name: Pseudowire_28-Red
+    adapters:
+      - switch_ports:
+          - Ethernet28
+        switches: 
+          - SW502-SITE5-R
+        descriptions: 
+          - DATA PATH to SITE1 8
+        profile: Pseudowire_Police_500
+
+# Haivision
+  - name: HaivisionSRTTrafficRed
+    adapters:
+      - switch_ports:
+          - Ethernet17
+          - Ethernet18
+          - Ethernet19
+          - Ethernet20
+          - Ethernet21
+        switches: 
+          - SW502-SITE5-R
+          - SW502-SITE5-R
+          - SW502-SITE5-R
+          - SW502-SITE5-R
+          - SW502-SITE5-R
+        descriptions: 
+          - Haivision Standby
+          - Haivision Standby
+          - Haivision Standby
+          - Haivision Standby
+          - Haivision Standby
+        profile: HaivisionSRTTrafficRed_site5
+
+# EdgeDeviceControl
+  - name: EdgeDeviceControl-Red
+    adapters:
+      - switch_ports:
+          - Ethernet29
+        switches: 
+          - SW502-SITE5-R
+        descriptions:
+          - Operations Standby
+        profile: EdgeDeviceControl_site5
+
+# Intercom
+  - name: Intercom-Red
+    adapters:
+      - switch_ports:
+          - Ethernet30
+        switches: 
+          - SW502-SITE5-R
+        description: Intercom Standby 
+        profile: Intercom_site5
+

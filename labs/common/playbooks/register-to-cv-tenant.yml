@@ -1,0 +1,130 @@
+---
+# This playbook will connect to CVaaS and generate an onboarding token than push the token to target devices and start terminattr
+# The target devices will be onboarded in CVaaS
+
+
+- name: Connect to cvass make token and download
+  hosts: localhost
+  gather_facts: false
+  vars:
+    cvaas_url: "{{ lookup('env', 'CVAAS_SERVER') }}"
+    cvaas_service_token: "{{ lookup('env', 'CVAAS_TOKEN') }}"       # Service Account auth token
+    device_mgmt_vrf: "default"
+  tasks:
+
+
+# Generate token for CVaaS Canadian cluster
+    - name: Generating TerminAttr onboarding token on CVaaS Canada
+      tags: [build]
+      ansible.builtin.uri:
+        url: "https://{{ cvaas_url }}/api/v3/services/admin.Enrollment/AddEnrollmentToken"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Cookie: "access_token={{ cvaas_service_token }}"
+        validate_certs: false
+        return_content: true
+        body: '{"enrollmentToken": {"reenrollDevices": ["*"], "validFor": "720h"}}'
+      register: cv_onboarding_token_canada
+      until: cv_onboarding_token_canada.status == 200
+      retries: 10
+      delay: 2
+    - name: Debug - Show ecdrsa file
+      tags:
+        - service_user
+      ansible.builtin.debug:
+        msg: "Post info: {{ cv_onboarding_token_canada }}"
+      # when: ansible_verbosity >= 1
+    # Writing cvaas token to file
+    - name: Parsing CVaaS token
+      tags: [build]
+      ansible.builtin.set_fact:
+        cv_onboarding_token_canada: "{{ cv_onboarding_token_canada.content | list | join }}"
+    - name: Writing CVaaS token to file
+      tags: [build]
+      ansible.builtin.copy:
+        content: "{{ cv_onboarding_token_canada[0].enrollmentToken.token }}"
+        dest: "./cvaas-token.tok"
+        mode: u=rw,g=r,o=r
+
+# - name: Import Global Vars
+#   ansible.builtin.include_vars: "{{ item }}"
+#   with_items:
+#     - "../global_vars/global_dc_vars.yml"
+
+- name: Onboard ContainerLab devices to CVaaS
+  hosts: "{{ target_hosts | default('FABRIC') }}" # arista_ceos # Change to your value from inventory file
+  gather_facts: false
+  vars:
+    ansible_user: cvpadmin
+    ansible_password: "{{ lookup('env', 'LABPASSPHRASE') }}"
+    ansible_connection: httpapi
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: false
+    ansible_network_os: eos
+    ansible_httpapi_port: 443
+    ansible_python_interpreter: $(which python3)
+    terminattr_vrf: default                    # Change this if TerminiAttr needs to use another VRF
+    terminattr_interface: Management1                    # Change this if TerminiAttr needs to use another VRF
+
+  tasks:
+
+    # - name: Import Global Vars
+    #   ansible.builtin.include_vars: "{{ item }}"
+    #   with_items:
+    #     - "../global_vars/global_dc_vars.yml"
+
+    # - name: Debug - Show ecdrsa file
+    #   tags: 
+    #     - service_user
+    #   ansible.builtin.debug:
+    #     msg: "ansible_user: {{ ansible_user }} - ansible_pass: {{ ansible_password }}"
+    #   # when: ansible_verbosity >= 1
+    - name: Copy onboarding token and start the TerminAttr daemon
+      tags: [onboard]
+      # when: "'arista_ceos' in groups"
+      ansible.builtin.uri:
+        url: "https://{{ ansible_user }}:{{ ansible_password }}@{{ hostvars[inventory_hostname].ansible_host }}/command-api"
+        method: POST
+        headers:
+          Accept: "application/json"
+        validate_certs: false
+        return_content: true
+        force_basic_auth: true
+        body:
+          jsonrpc: "2.0"
+          method: "runCmds"
+          params:
+            version: 1
+            cmds:
+              - "enable"
+              - cmd: "copy terminal: file:/tmp/cv-onboarding-token"
+                input: "{{ lookup('file', './cvaas-token.tok') }}"
+              - "configure"
+              - "daemon TerminAttr"
+              - "shutdown"
+              - |
+                exec /usr/bin/TerminAttr \
+                -cvopt CVaaS.addr=apiserver.arista.io:443 \
+                -cvopt CVaaS.auth=token-secure,/tmp/cv-onboarding-token \
+                -cvopt CVaaS.vrf={{ terminattr_vrf }} \
+                -cvopt CVaaS.sourceintf={{ terminattr_interface }} \
+                -disableaaa \
+                -smashexcludes=ale,flexCounter,hardware,kni,pulse,strata \
+                -ingestexclude=/Sysdb/cell/1/agent,/Sysdb/cell/2/agent \
+                -taillogs
+              - "no shutdown"
+              - "wr"
+            format: json
+            timestamps: false
+            autoComplete: false
+            expandAliases: false
+            stopOnError: false
+            streaming: false
+            includeErrorDetail: false
+          id: EapiExplorer-1
+        body_format: json
+      register: cv_onboarding_token
+      until: cv_onboarding_token.status == 200
+      retries: 10
+      delay: 2

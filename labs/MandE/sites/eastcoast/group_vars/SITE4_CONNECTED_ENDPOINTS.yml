@@ -1,0 +1,41 @@
+---
+
+# Definition of connected endpoints in the fabric.
+
+generic_devices:
+
+##############################################
+# Switchport config for SW401-SITE4-B
+
+# WAN FROM SITE5 - BELL
+  - name: WAN SITE5 BELL
+    adapters:
+      - switch_ports:
+          - Ethernet1
+          - Ethernet2
+        switches: 
+          - SW401-SITE4-B
+          - SW401-SITE4-B
+        descriptions: 
+          - Bell Internet WAN IN - 15
+          - BU
+        profile: WAN_SITE5_BELL
+
+
+##############################################
+# Switchport config for SW402-SITE4-R
+
+
+# WAN FROM SITE5 - ROGERS
+  - name: WAN SITE4 ROGERS
+    adapters:
+      - switch_ports:
+          - Ethernet1
+          - Ethernet2
+        switches: 
+          - SW402-SITE4-R
+          - SW402-SITE4-R
+        descriptions: 
+          - ROGERS Internet WAN IN
+          - BU
+        profile: WAN_SITE5_ROGERS

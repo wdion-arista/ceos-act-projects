@@ -1,0 +1,15 @@
+---
+MGMT:
+  - name: MGMT
+    mac_vrf_vni_base: 10000
+    mac_vrf_id_base: 10000
+    vrfs:
+      - name: MGMT
+        vrf_id: 11999
+        svis:
+          - id: 999
+            tags:
+              - "purple_site1" # CHECK if needed
+            name: MGMT
+            enabled: true
+            ip_address_virtual: 10.1.99.1/24

@@ -1,0 +1,9 @@
+# Tenant Networks (VRFs)
+# Documentation of Tenant specific information - Vlans/VRFs
+
+network_services_keys:
+  - name: WAN
+  - name: Production
+  - name: InternetLANDistributionClients
+  - name: pw
+  - name: MGMT

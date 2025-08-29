@@ -1,0 +1,19 @@
+---
+
+- name: Setup Python 3.9
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Get all nodes for site1
+      ansible.builtin.set_fact:
+        site1_nodes: >-
+          {{
+            spine.node_groups
+            | selectattr('filter.tags', 'contains', 'site1')
+            | map(attribute='nodes')
+            | sum(start=[])
+          }}
+    - name: Show site1 nodes
+      ansible.builtin.debug:
+        var: site1_nodes

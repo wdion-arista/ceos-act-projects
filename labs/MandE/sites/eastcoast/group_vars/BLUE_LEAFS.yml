@@ -1,0 +1,255 @@
+---
+type: l3leaf
+
+l3leaf:
+  defaults:
+    campus: MandE
+    campus_access_pod: Blue
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 32768
+    loopback_ipv4_pool: 10.101.30.0/24
+    vtep_loopback_ipv4_pool: 10.101.40.0/24
+    uplink_ipv4_pool: 10.101.50.0/24
+    virtual_router_mac_address: 00:1c:73:00:dc:00
+    
+  node_groups:
+    - group: SITE2_BLUE_LEAFS
+      bgp_as: 65201
+      uplink_interfaces: [Ethernet51/1]
+      mlag: false
+      filter:
+        tenants: [all]
+        tags:
+          - "l3leafs"
+          - "blue"
+      nodes:
+        - name: SW201-SITE2-B
+          id: 3
+          campus_pod: SITE2
+          filter:
+            tags:
+              - "site2"
+              - "blue_site2"
+          platform: "{{ platform_clab_type | default('7280SR3') }}"
+          #inband_mgmt_ip: 10.10.10.40/24
+          uplink_interfaces: [Ethernet47]
+          uplink_switches: [SW101-SITE1-B]
+          uplink_switch_interfaces: [Ethernet47]
+          virtual_router_mac_address: 00:1c:73:00:dc:21
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}" # 192.168.0.12/24
+          digital_twin:
+            mgmt_ip: 1.1.1.1/24
+
+          structured_config:
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.21/32
+                description: INBAND_MGMT
+                vrf: Production
+            vlans:
+              - id: 230
+                name: JXSVideoTrafficBLUE
+            vlan_interfaces:
+              - name: Vlan230
+                description: JXSVideoTrafficBLUE
+                ip_address: 10.2.30.1/24 
+                pim:
+                  ipv4:
+                    sparse_mode: true
+                isis_enable: EVPN_UNDERLAY                    
+            underlay_multicast: true
+            router_pim_sparse_mode:
+              ipv4:
+                rp_addresses:
+                  - address: 10.101.30.1
+                    groups:
+                      - 236.1.0.0/18
+            ip_igmp_snooping:
+              globally_enabled: true
+              vlans:
+                - id: 230
+                  enabled: true
+            router_multicast:
+              ipv4:
+                routing: true
+                software_forwarding: kernel                      
+    - group: SITE4_BLUE_LEAFS
+      bgp_as: 65401
+      mlag: false
+      filter:
+        tenants: [all]
+        tags:
+          - "l3leafs"
+          - "blue"          
+      # evpn_gateway:
+      #   # Specific BGP EVPN Gateway functionality for route types 2 (MAC-IP), 3 (IMET) and 5 (IP-PREFIX) can be enabled separately as needed.
+      #   evpn_l2:
+      #     enabled: true
+      #   evpn_l3:
+      #     enabled: true
+      #     inter_domain: true
+      nodes:
+        - name: SW401-SITE4-B
+          id: 4
+          filter:
+            tenants: [all]
+            tags:
+              - "site4"
+              - "blue_site4"
+          campus_pod: SITE4              
+          platform: "{{ platform_clab_type | default('7280SR3') }}"
+          #inband_mgmt_ip: 10.10.10.41/24
+          uplink_interfaces: [Ethernet45]
+          uplink_switches: [SW101-SITE1-B]
+          uplink_switch_interfaces: [Ethernet43]
+          virtual_router_mac_address: 00:1c:73:00:dc:41
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}"
+          structured_config:
+            clock:
+              timezone: Canada/Eastern
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.41/32
+                description: INBAND_MGMT
+                vrf: Production
+            underlay_multicast: true
+            router_pim_sparse_mode:
+              ipv4:
+                rp_addresses:
+                  - address: 10.101.30.1
+                    groups:
+                      - 236.1.0.0/18
+            router_multicast:
+              ipv4:
+                routing: true
+                software_forwarding: kernel
+            hardware:
+              speed_groups:
+                - speed_group: 1
+                  serdes: 10g
+
+    - group: SITE5_BLUE_LEAFS
+      bgp_as: 65501
+      mlag: false
+      filter:
+        tenants: [all]
+        tags:
+          - "l3leafs"
+          - "blue"
+      
+      evpn_gateway:
+        # Specific BGP EVPN Gateway functionality for route types 2 (MAC-IP), 3 (IMET) and 5 (IP-PREFIX) can be enabled separately as needed.
+        evpn_l2:
+          enabled: true
+        evpn_l3:
+          enabled: true
+          inter_domain: true
+      nodes:
+        - name: SW501-SITE5-B
+          id: 5
+          filter:
+            tenants: [all]
+            tags:
+              - "site5"
+              - "blue_site5"
+          campus_pod: SITE5
+          platform: "{{ platform_clab_type | default('7280SR3') }}"
+          #inband_mgmt_ip: 10.10.10.41/24
+          uplink_interfaces: [Ethernet39]
+          uplink_switches: [SW401-SITE4-B]
+          uplink_switch_interfaces: [Ethernet47]
+          virtual_router_mac_address: 00:1c:73:00:dc:51
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}"
+          structured_config:
+            clock:
+              timezone: Canada/Eastern
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.51/32
+                description: INBAND_MGMT
+                vrf: Production
+            router_bgp:
+              distance:
+                external_routes: 20
+                internal_routes: 200
+                local_routes: 200
+              updates:
+                wait_install: true
+              peer_groups:
+                - name: EVPN-OVERLAY-PEERS
+                  type: evpn
+                  # next_hop_unchanged: true
+                  update_source: Loopback0
+                  send_community: all
+                  bfd: true
+                  next_hop_self: true                
+              neighbors:
+                  - ip_address: 10.101.30.1
+                    peer_group: EVPN-OVERLAY-PEERS
+                    remote_as: 65100
+                    description: BLUE-SPINE
+            vlans:
+              - id: 530
+                name: JXSVideoTrafficBLUE
+            vlan_interfaces:
+              - name: Vlan530
+                description: JXSVideoTrafficBLUE
+                ip_address: 10.5.30.1/24 
+                pim:
+                  ipv4:
+                    sparse_mode: true
+                isis_enable: EVPN_UNDERLAY                    
+            underlay_multicast: true
+            router_pim_sparse_mode:
+              ipv4:
+                rp_addresses:
+                  - address: 10.101.30.1
+                    groups:
+                      - 236.1.0.0/18
+            ip_igmp_snooping:
+              globally_enabled: true
+              vlans:
+                - id: 530
+                  enabled: true
+            router_multicast:
+              ipv4:
+                routing: true
+                software_forwarding: kernel
+            hardware:
+              speed_groups:
+                - speed_group: 1
+                  serdes: 10g
+            # ethernet_interfaces:
+              # - name: Ethernet19
+              #   shutdown: true
+# DCHP
+            dhcp_servers:
+            - vrf: Production
+              dns_servers_ipv4:
+              - 4.2.2.1
+              - 8.8.8.8
+              # tftp_server:
+              #   file_ipv4: https://www.arista.io/ztp/bootstrap
+              ipv4_vendor_options:
+              - vendor_id: NTP
+                sub_options:
+                - code: 42
+                  array_ipv4_address:
+                  - 216.232.132.95
+                  - 23.133.168.244
+                  - 173.183.146.26
+                  - 208.73.56.29
+              subnets:
+              - subnet: 10.5.13.0/24
+                name: Operations
+                default_gateway: 10.5.13.1
+                ranges:
+                  - start: 10.5.13.10
+                    end: 10.5.13.250
+              - subnet: 10.5.20.0/24
+                name: Intercom
+                default_gateway: 10.5.20.1
+                ranges:
+                  - start: 10.5.20.10
+                    end: 10.5.20.250
+

@@ -1,0 +1,337 @@
+---
+type: l3leaf
+
+underlay_multicast: false
+l3leaf:
+  defaults:
+    campus: MandE
+    campus_access_pod: Purple
+    platform: "{{ platform_clab_type | default('7020TD') }}"
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 32768
+    # inband_mgmt_subnet: 10.10.10.0/24
+    # inband_mgmt_vlan: 1011
+    loopback_ipv4_pool: 10.11.30.0/24
+    vtep_loopback_ipv4_pool: 10.11.40.0/24
+    uplink_ipv4_pool: 10.11.50.0/24
+    # mlag_peer_ipv4_pool: 10.60.171.12/30
+    # mlag: true
+    
+
+  node_groups:
+    - group: SITE1_PURPLE_LEAFS
+      uplink_interfaces: [Ethernet49/1,Ethernet50/1]
+      mlag: false
+      filter:
+        tenants: [all]
+        tags:
+          - "l3leafs"
+          - "purple"
+      # evpn_gateway:
+        # Specific BGP EVPN Gateway functionality for route types 2 (MAC-IP), 3 (IMET) and 5 (IP-PREFIX) can be enabled separately as needed.
+        # evpn_l2:
+        #   enabled: true
+        # evpn_l3:
+        #   enabled: true
+        #   inter_domain: true
+
+      nodes:
+        - name: SW103-SITE1-P
+          id: 3
+          filter:
+            tenants: [all]
+            tags:
+              - "site1"
+              - "purple_site1"
+          campus_pod: SITE1    
+          bgp_as: 65103
+          platform: "{{ platform_clab_type | default('7020TD') }}"
+          uplink_interfaces: [Ethernet53/1,Ethernet54/1]
+          uplink_switches: [SW101-SITE1-B,SW102-SITE1-R]
+          uplink_switch_interfaces: [Ethernet56/1,Ethernet56/1]
+          virtual_router_mac_address: 00:1c:73:00:dc:13
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}"
+          structured_config:
+            clock:
+              timezone: Canada/Eastern
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.13/32
+                description: INBAND_MGMT
+                vrf: Production
+            dhcp_servers:
+            - vrf: Production
+              dns_servers_ipv4:
+              - 4.2.2.1
+              - 8.8.8.8
+              # tftp_server:
+              #   file_ipv4: https://www.arista.io/ztp/bootstrap
+              ipv4_vendor_options:
+              - vendor_id: NTP
+                sub_options:
+                - code: 42
+                  array_ipv4_address:
+                  - 216.232.132.95
+                  - 23.133.168.244
+                  - 173.183.146.26
+                  - 208.73.56.29
+              subnets:
+              - subnet: 10.1.12.0/24
+                name: Network Management
+                default_gateway: 10.1.12.1
+                ranges:
+                  - start: 10.1.12.10
+                    end: 10.1.12.250
+              - subnet: 10.1.13.0/24
+                name: Operations
+                default_gateway: 10.1.13.1
+                ranges:
+                  - start: 10.1.13.10
+                    end: 10.1.13.250
+              - subnet: 10.1.20.0/24
+                name: Intercom
+                default_gateway: 10.1.20.1
+                ranges:
+                  - start: 10.1.20.10
+                    end: 10.1.20.250
+              - subnet: 10.1.35.0/24
+                name: Haivision Blue
+                default_gateway: 10.1.35.1
+                ranges:
+                  - start: 10.1.35.10
+                    end: 10.1.35.250
+              - subnet: 10.1.36.0/24
+                name: Haivision Red
+                default_gateway: 10.1.36.1
+                ranges:
+                  - start: 10.1.36.10
+                    end: 10.1.36.250
+              - subnet: 10.1.40.0/24
+                name: Data Transfer - EVS
+                default_gateway: 10.1.40.1
+                ranges:
+                  - start: 10.1.40.10
+                    end: 10.1.40.250
+              - subnet: 10.1.84.0/24
+                name: ILD4_1G
+                default_gateway: 10.1.84.1
+                ranges:
+                  - start: 10.1.84.10
+                    end: 10.1.84.250
+    - group: SITE2_PURPLE_LEAFS
+      mlag: false
+      filter:
+        tenants: [all]
+        tags:
+          - "l3leafs"
+          - "purple"
+      # evpn_gateway:
+      #   # Specific BGP EVPN Gateway functionality for route types 2 (MAC-IP), 3 (IMET) and 5 (IP-PREFIX) can be enabled separately as needed.
+      #   evpn_l2:
+      #     enabled: true
+      #   evpn_l3:
+      #     enabled: true
+      #     inter_domain: true
+      nodes:
+        - name: SW203-SITE2-P
+          id: 4
+          filter:
+            tenants: [all]
+            tags:
+              - "site2"
+              - "purple_site2"
+          campus_pod: SITE2
+          bgp_as: 65203
+          platform: "{{ platform_clab_type | default('7020TD') }}"
+          uplink_interfaces: [Ethernet53/1,Ethernet54/1]
+          uplink_switches: [SW201-SITE2-B,SW202-SITE2-R]
+          uplink_switch_interfaces: [Ethernet56/1,Ethernet56/1]
+          virtual_router_mac_address: 00:1c:73:00:dc:23
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}"
+          structured_config:
+            clock:
+              timezone: Canada/Eastern
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.23/32
+                description: INBAND_MGMT
+                vrf: Production
+            router_bgp:
+              distance:
+                external_routes: 20
+                internal_routes: 200
+                local_routes: 200
+              updates:
+                wait_install: true
+              peer_groups:
+                - name: EVPN-OVERLAY-PEERS
+                  type: evpn
+                  # next_hop_unchanged: true
+                  update_source: Loopback0
+                  send_community: all
+                  bfd: true
+                  next_hop_self: true                
+              neighbors:
+                  - ip_address: 10.101.30.1
+                    peer_group: EVPN-OVERLAY-PEERS
+                    remote_as: 65100
+                    description: BLUE-SPINE
+                  - ip_address: 10.102.30.1
+                    peer_group: EVPN-OVERLAY-PEERS
+                    remote_as: 65200
+                    description: RED-SPINE
+            dhcp_servers:
+            - vrf: Production
+              dns_servers_ipv4:
+              - 4.2.2.1
+              - 8.8.8.8
+              # tftp_server:
+              #   file_ipv4: https://www.arista.io/ztp/bootstrap
+              ipv4_vendor_options:
+              - vendor_id: NTP
+                sub_options:
+                - code: 42
+                  array_ipv4_address:
+                  - 216.232.132.95
+                  - 23.133.168.244
+                  - 173.183.146.26
+                  - 208.73.56.29
+              subnets:
+              - subnet: 10.2.12.0/24
+                name: Network Management
+                default_gateway: 10.2.12.1
+                ranges:
+                  - start: 10.2.12.10
+                    end: 10.2.12.250
+              - subnet: 10.2.13.0/24
+                name: Operations
+                default_gateway: 10.2.13.1
+                ranges:
+                  - start: 10.2.13.10
+                    end: 10.2.13.250
+              - subnet: 10.2.20.0/24
+                name: Intercom
+                default_gateway: 10.2.20.1
+                ranges:
+                  - start: 10.2.20.10
+                    end: 10.2.20.250
+              - subnet: 10.2.35.0/24
+                name: Haivision Blue
+                default_gateway: 10.2.35.1
+                ranges:
+                  - start: 10.2.35.10
+                    end: 10.2.35.250
+              - subnet: 10.2.36.0/24
+                name: Haivision Red
+                default_gateway: 10.2.36.1
+                ranges:
+                  - start: 10.2.36.10
+                    end: 10.2.36.250
+              - subnet: 10.2.40.0/24
+                name: Data Transfer - EVS
+                default_gateway: 10.2.40.1
+                ranges:
+                  - start: 10.2.40.10
+                    end: 10.2.40.250
+              - subnet: 10.2.84.0/24
+                name: ILD4_1G
+                default_gateway: 10.2.84.1
+                ranges:
+                  - start: 10.2.84.10
+                    end: 10.2.84.250
+    - group: SITE3_PURPLE_LEAFS
+      bgp_as: 65301
+      mlag: false
+      filter:
+        tenants: [all]
+        tags:
+          - "l3leafs"
+          - "purple"      
+      # evpn_gateway:
+      #   # Specific BGP EVPN Gateway functionality for route types 2 (MAC-IP), 3 (IMET) and 5 (IP-PREFIX) can be enabled separately as needed.
+      #   evpn_l2:
+      #     enabled: true
+      #   evpn_l3:
+      #     enabled: true
+      #     inter_domain: true
+      nodes:
+        - name: SW301-SITE3-P
+          id: 5
+          filter:
+            tenants: [all]
+            tags:
+              - "site3"
+              - "purple_site3"
+          campus_pod: SITE3
+          platform: "{{ platform_clab_type | default('7280SR3') }}"
+          #inband_mgmt_ip: 10.10.10.42/24
+          uplink_interfaces: [Ethernet35,Ethernet36]
+          uplink_switches: [SW101-SITE1-B,SW102-SITE1-R]
+          uplink_switch_interfaces: [Ethernet45,Ethernet45]
+          virtual_router_mac_address: 00:1c:73:00:dc:31
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}"             
+          structured_config:
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.31/32
+                description: INBAND_MGMT
+                vrf: Production
+            dhcp_servers:
+            - vrf: Production
+              dns_servers_ipv4:
+              - 4.2.2.1
+              - 8.8.8.8
+              # tftp_server:
+              #   file_ipv4: https://www.arista.io/ztp/bootstrap
+              ipv4_vendor_options:
+              - vendor_id: NTP
+                sub_options:
+                - code: 42
+                  array_ipv4_address:
+                  - 216.232.132.95
+                  - 23.133.168.244
+                  - 173.183.146.26
+                  - 208.73.56.29
+              subnets:
+              - subnet: 10.3.12.0/24
+                name: Network Management
+                default_gateway: 10.3.12.1
+                ranges:
+                  - start: 10.3.12.10
+                    end: 10.3.12.250
+              - subnet: 10.3.13.0/24
+                name: Operations
+                default_gateway: 10.3.13.1
+                ranges:
+                  - start: 10.3.13.10
+                    end: 10.3.13.250
+              - subnet: 10.3.20.0/24
+                name: Intercom
+                default_gateway: 10.3.20.1
+                ranges:
+                  - start: 10.3.20.10
+                    end: 10.3.20.250
+              - subnet: 10.3.35.0/24
+                name: Haivision Blue
+                default_gateway: 10.3.35.1
+                ranges:
+                  - start: 10.3.35.10
+                    end: 10.3.35.250
+              - subnet: 10.3.36.0/24
+                name: Haivision Red
+                default_gateway: 10.3.36.1
+                ranges:
+                  - start: 10.3.36.10
+                    end: 10.3.36.250
+              - subnet: 10.3.40.0/24
+                name: Data Transfer - EVS
+                default_gateway: 10.3.40.1
+                ranges:
+                  - start: 10.3.40.10
+                    end: 10.3.40.250
+              - subnet: 10.3.84.0/24
+                name: ILD4_1G
+                default_gateway: 10.3.84.1
+                ranges:
+                  - start: 10.3.84.10
+                    end: 10.3.84.250

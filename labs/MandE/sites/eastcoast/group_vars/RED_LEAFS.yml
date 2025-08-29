@@ -1,0 +1,190 @@
+---
+type: l3leaf
+
+l3leaf:
+  defaults:
+    campus: MandE
+    campus_access_pod: Red
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 32768
+    # inband_mgmt_subnet: 10.10.10.0/24
+    #inband_mgmt_vlan: 1011
+    # mlag_peer_l3_vlan: 4094
+    # mgmt_interface: vlan1011
+    loopback_ipv4_pool: 10.102.30.0/24
+    vtep_loopback_ipv4_pool: 10.102.40.0/24
+    uplink_ipv4_pool: 10.102.50.0/24
+    # mlag_peer_ipv4_pool: 10.60.171.12/30
+    virtual_router_mac_address: 00:1c:73:00:dc:22
+    # mlag: true
+
+  node_groups:
+    - group: RED_LEAFS
+      uplink_interfaces: [Ethernet51/1]
+      mlag: false
+      filter:
+        tenants: [all]
+        tags:
+          - "l3leafs"
+          - "red"
+      nodes:
+        - name: SW202-SITE2-R
+          filter:
+            tags:
+              - "site2"
+              - "red_site2"
+          id: 3
+          campus_pod: SITE2
+          bgp_as: 65201
+          platform: "{{ platform_clab_type | default('7280SR3') }}"
+          uplink_interfaces: [Ethernet47]
+          uplink_switches: [SW102-SITE1-R]
+          uplink_switch_interfaces: [Ethernet47]
+          virtual_router_mac_address: 00:1c:73:00:dc:23
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}"
+          structured_config:
+            clock:
+              timezone: Canada/Eastern
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.22/32
+                description: INBAND_MGMT
+                vrf: Production
+            vlans:
+              - id: 231
+                name: JXSVideoTrafficRED
+            vlan_interfaces:
+              - name: Vlan231
+                description: JXSVideoTrafficRED
+                ip_address: 10.2.31.1/24 
+                pim:
+                  ipv4:
+                    sparse_mode: true
+                isis_enable: EVPN_UNDERLAY
+            underlay_multicast: true
+            router_pim_sparse_mode:
+              ipv4:
+                rp_addresses:
+                  - address: 10.102.30.1
+                    groups:
+                      - 236.2.0.0/18
+            ip_igmp_snooping:
+              globally_enabled: true
+              vlans:
+                - id: 231
+                  enabled: true
+            router_multicast:
+              ipv4:
+                routing: true
+                software_forwarding: kernel
+        - name: SW402-SITE4-R
+          id: 4
+          filter:
+            tags:
+              - "site4"
+              - "red_site4"
+          campus_pod: SITE4
+          bgp_as: 65402
+          platform: "{{ platform_clab_type | default('7280SR3') }}"
+          uplink_interfaces: [Ethernet45]
+          uplink_switches: [SW102-SITE1-R]
+          uplink_switch_interfaces: [Ethernet43]
+          virtual_router_mac_address: 00:1c:73:00:dc:24
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}"
+          structured_config:
+            clock:
+              timezone: Canada/Eastern
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.42/32
+                description: INBAND_MGMT
+                vrf: Production
+            underlay_multicast: true
+            router_pim_sparse_mode:
+              ipv4:
+                rp_addresses:
+                  - address: 10.102.30.1
+                    groups:
+                      - 236.2.0.0/18
+            router_multicast:
+              ipv4:
+                routing: true
+                software_forwarding: kernel             
+            hardware:
+              speed_groups:
+                - speed_group: 1
+                  serdes: 10g
+
+        - name: SW502-SITE5-R
+          id: 5
+          filter:
+            tags:
+              - "site5"
+              - "red_site5"
+          campus_pod: SITE5              
+          bgp_as: 65502
+          platform: "{{ platform_clab_type | default('7280SR3') }}"
+          uplink_interfaces: [Ethernet39]
+          uplink_switches: [SW402-SITE4-R]
+          uplink_switch_interfaces: [Ethernet47]
+          virtual_router_mac_address: 00:1c:73:00:dc:24
+          mgmt_ip: "{{ ansible_host }}/{{ mgmt_cidr | default('24') }}"
+          structured_config:
+            clock:
+              timezone: Canada/Eastern
+            loopback_interfaces:
+              - name: "Loopback10"
+                ip_address: 10.0.10.52/32
+                description: INBAND_MGMT
+                vrf: Production
+            router_bgp:
+              distance:
+                external_routes: 20
+                internal_routes: 200
+                local_routes: 200
+              updates:
+                wait_install: true
+              peer_groups:
+                - name: EVPN-OVERLAY-PEERS
+                  type: evpn
+                  # next_hop_unchanged: true
+                  update_source: Loopback0
+                  send_community: all
+                  bfd: true
+                  next_hop_self: true                
+              neighbors:
+                  - ip_address: 10.102.30.1
+                    peer_group: EVPN-OVERLAY-PEERS
+                    remote_as: 65200
+                    description: RED-SPINE              
+            vlans:
+              - id: 531
+                name: JXSVideoTrafficRED
+            vlan_interfaces:
+              - name: Vlan531
+                description: JXSVideoTrafficRED
+                ip_address: 10.5.31.1/24 
+                pim:
+                  ipv4:
+                    sparse_mode: true
+                isis_enable: EVPN_UNDERLAY
+            underlay_multicast: true
+            router_pim_sparse_mode:
+              ipv4:
+                rp_addresses:
+                  - address: 10.102.30.1
+                    groups:
+                      - 236.2.0.0/18
+            ip_igmp_snooping:
+              globally_enabled: true
+              vlans:
+                - id: 531
+                  enabled: true
+            router_multicast:
+              ipv4:
+                routing: true
+                software_forwarding: kernel
+
+
+
+

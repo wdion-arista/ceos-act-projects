@@ -1,0 +1,23 @@
+# macOS specific files
+.DS_Store
+.env
+*.bak
+notes.sh
+.ansible
+act/
+clab/
+temp/
+core.*
+/avd/
+temp/
+__pycache__/
+*.log
+secrets.yml
+cvaas-token.tok
+.vscode/
+*.log
+act_connections/
+act_topgen/
+dome-truck/
+production-data-centers-pod-main/
+wdion-l3l2-lab/

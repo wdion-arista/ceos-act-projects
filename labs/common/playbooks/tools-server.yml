@@ -1,0 +1,71 @@
+---
+- name: Setup Python 3.10
+  hosts: TOOLSSERVER
+  gather_facts: false
+
+  tasks:
+    - name: Install Python on remote host
+      ansible.builtin.raw: |
+        sudo apt install -y python3
+      register: my_output # <- Registers the command output.
+      changed_when: my_output.rc != 0 # <- Uses the return code to define when the task has changed.
+
+- name: Setup IP_forwarding
+  hosts: TOOLSSERVER
+  become: true
+  gather_facts: true
+
+  tasks:
+    # - name: Install update (Can take +10 mins)
+    #   ansible.builtin.command: sudo apt update -y
+    #   register: task_result
+    #   failed_when: task_result.rc != 0
+    #   ignore_errors: true
+    #   changed_when: task_result.rc != 0 # <- Uses the return code to define when the task has changed.
+
+    - name: Install or update iperf3
+      become: true
+      ansible.builtin.apt:
+        name:
+          - iputils-ping
+          - iperf3
+          - iptables-persistent
+        state: present
+
+    # - name: Install update apt_pkg
+    #   ansible.builtin.command: |
+    #     sudo apt remove python3-apt -y
+    #     sudo apt autoremove -y
+    #     sudo apt autoclean
+    #     sudo apt install python3-apt -y
+    #   when: task_result.rc != 0
+    #   register: apk_result
+    #   changed_when: false
+
+    # - name: Install update again
+    #   ansible.builtin.command: sudo apt-get update
+    #   register: retry_result
+    #   retries: 3
+    #   delay: 5
+    #   until: retry_result.rc == 0
+    #   when: task_result.rc != 0
+    #   changed_when: false
+    - name: Writing ip_forward
+      tags: [build]
+      ansible.builtin.copy:
+        content: "net.ipv4.ip_forward=1"
+        dest: "/etc/sysctl.conf"
+        mode: u=rw,g=r,o=r
+
+    - name: IP tables
+      ansible.builtin.shell:
+        executable: /bin/bash
+        # chdir: "{{ app_folder }}"
+        cmd: |
+          sudo sysctl -p
+          sudo iptables -t nat -A POSTROUTING -o ens4 -j MASQUERADE
+          sudo iptables -A FORWARD -i tun0 -o ens4 -j ACCEPT
+          sudo iptables -A FORWARD -i ens4 -o tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+          sudo netfilter-persistent save
+      register: iptables_out
+      changed_when: iptables_out.rc

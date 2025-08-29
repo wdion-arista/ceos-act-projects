@@ -1,0 +1,23 @@
+---
+- name: Deploy Configurations to Devices Using CloudVision Portal # (1)!
+  hosts: "{{ target_hosts | default('FABRIC') }}"
+  gather_facts: false
+  connection: local
+  tasks:
+
+    - name: Deploy configurations and tags to CloudVision
+      ansible.builtin.import_role:
+        name: arista.avd.cv_deploy
+      vars:
+        cv_server: "{{ lookup('env', 'CVP_SERVER') }}"
+        cv_token: "{{ lookup('env', 'CVP_TOKEN_LAB') }}"
+        container_root: "{{ target_hosts }}"
+        # Workspace state
+        cv_submit_workspace: true
+
+        # Change Control state
+        cv_run_change_control: false
+
+        # Set the template to be used to generate the configlet names in CloudVision Static Config Studio.
+        cv_configlet_name_template: "AVD-${hostname}"
+        cv_verify_certs: false

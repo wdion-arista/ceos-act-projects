@@ -1,0 +1,149 @@
+---
+# Credentials for CVP and EOS Switches
+ansible_user: cvpadmin
+ansible_password: "{{ lookup('env', 'LABPASSPHRASE') }}"
+ansible_network_os: arista.eos.eos
+# Configure privilege escalation
+ansible_become: true
+ansible_become_method: enable
+# HTTPAPI configuration
+ansible_connection: httpapi
+ansible_httpapi_port: 443
+ansible_httpapi_use_ssl: true
+ansible_httpapi_validate_certs: false
+ansible_python_interpreter: $(which python3)
+avd_data_validation_mode: error
+
+ansible_diff_mode: network
+
+# # arista.avd.cv_deploy role parameters
+# cv_token: # Fill in here with a CloudVision Service Account Token
+# cv_server: cvp
+# cv_verify_certs: false
+
+# Local Users
+local_users:
+  - name: "{{ ansible_user }}"
+    privilege: 15
+    role: network-admin
+    sha512_password: "{{ ansible_password | password_hash('sha512', salt='arista', rounds=5000) }}"
+    ssh_key: "{{ lookup('ansible.builtin.file', lookup('env', 'HOME') + '/.ssh/id_ecdsa.pub') }}"
+
+  # - name: cvpadmin
+  #   privilege: 15
+  #   role: network-admin
+  #   # Password set to "ansible". Same string as the device generates when configuring a username.
+  #   sha512_password: $6$hNPJ7EFOvJgas3zQ$.HncN6qfuBQsZW/reDwSkVi0h9SHarJTmOkotMT7XK7/N958w5zd7IhvGRkY7ekUcrKs6kJRr/85PVIdKSWpH.
+  #   ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJF7OT/UyUNugQBV/6sn/7FPB5glZfb2KzjBmlkxyWdx westley.dion@Westleys-MacBook-Pro-2.local"
+  - name: service
+    sha512_password: $6$xqN6kvscOiKvO4K0$uMr17y1EGzBOu0e3k7UrTbx5.dHqluAQ0KB5i.Qck6Md5lc0iAx7TGPlXORqzGxZLg.ro6ggy0C/CNdBIH52j.
+    shell: /bin/bash
+  - name: pcapper
+    shell: /bin/bash
+    sha512_password: $6$hNPJ7EFOvJgas3zQ$.HncN6qfuBQsZW/reDwSkVi0h9SHarJTmOkotMT7XK7/N958w5zd7IhvGRkY7ekUcrKs6kJRr/85PVIdKSWpH.
+    ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJF7OT/UyUNugQBV/6sn/7FPB5glZfb2KzjBmlkxyWdx westley.dion@Westleys-MacBook-Pro-2.local"
+
+# # AAA
+# aaa_authorization:
+#   exec:
+#     default: local
+
+# # OOB Management network default gateway.
+# mgmt_gateway: 192.168.0.1
+# mgmt_interface_vrf: MGMT
+
+# Common settings
+load_interval:
+  default: 30
+
+management_api_http:
+  enable_http: false
+  enable_https: true
+  enable_vrfs:
+    - name: default
+    - name: MGMT 
+
+
+# This is used to build the Terninattr daemon
+daemon_terminattr:
+  clusters:
+    # - name: OnPrem
+    #   cvaddrs:
+    #     - 192.168.0.5:9910
+    #   cvauth:
+    #     method: "token"
+    #     token_file: "/tmp/token"
+    #   cvvrf: default
+    #   # cvsourceintf: Management1
+    - name: CVaaS
+      cvaddrs:
+        - apiserver.arista.io:443
+      cvauth:
+        method: "token-secure"
+        token_file: "/tmp/cv-onboarding-token"
+        #method: certs
+        #key_file: /persist/secure/ssl/terminattr/CVaaS/keys/client.key
+        #cert_file: /persist/secure/ssl/terminattr/CVaaS/certs/client.crt
+
+      cvvrf: MGMT
+      cvsourceintf: Vlan101
+  disable_aaa: true
+  smashexcludes: "ale,flexCounter,hardware,kni,pulse,strata"
+  ingestexclude: "/Sysdb/cell/1/agent,/Sysdb/cell/2/agent"
+
+
+# Point to Point Links MTU Override for Lab
+p2p_uplinks_mtu: 1500
+
+# # CVP node variables
+# cv_collection: v3
+# execute_tasks: true
+
+
+# DHCP
+ip_dhcp_snooping:
+  enabled: true
+  information_option:
+    enabled: false
+
+# banners
+banners:
+  login: |
+    ***********************************************
+    Go away!
+    EOF
+
+#alias
+aliases: |
+  alias cc clear counters
+  alias cp clear platform trident counters
+  alias senz show interface counter error | nz
+  alias shmc show int | awk '/^[A-Z]/ { intf = ck216 } /, address is/ { print intf, }'
+  alias snz show interface counter | nz
+  alias sqnz show interface counter queue | nz
+  alias srnz show interface counter rate | nz
+  alias ps_show_bess bash ps -ef | grep -i Bess
+  alias check_terminattr show agent TerminAttr log | tail 
+
+interface_defaults:
+  # ethernet:
+  #   shutdown: true
+  mtu: 1500
+
+eos_designs_documentation:
+  topology_csv: true
+  p2p_links_csv: true
+
+### NTP Servers ###
+ntp:
+  servers:
+    # - name: 216.232.132.95
+    #   vrf: default
+    # - name: 23.133.168.244
+    #   vrf: default
+    - name: 216.232.132.95
+      vrf: MGMT
+    - name: 23.133.168.244
+      vrf: MGMT
+      
+

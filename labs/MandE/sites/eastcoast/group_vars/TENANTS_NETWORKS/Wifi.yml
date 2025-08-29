@@ -1,0 +1,17 @@
+---
+Wifi:
+  - name: MandEnet_Wifi
+    mac_vrf_vni_base: 10000
+    mac_vrf_id_base: 10000
+    vrfs:
+      - name: Wifi
+        vrf_id: 11111
+        svis:
+          - id: 111
+            tags:
+              - "site1" # CHECK if needed
+            name: Wifi
+            enabled: true
+            ip_address_virtual: 10.1.11.1/24
+            ip_helpers:
+              - ip_helper: 10.1.1.10

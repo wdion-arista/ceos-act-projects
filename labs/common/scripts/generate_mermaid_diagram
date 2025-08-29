@@ -1,0 +1,274 @@
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+
+"""
+# Mermaid cli test
+export LOCAL_WORKSPACE_FOLDER=/Users/westley.dion/Projects/Repos/github/wdion-arista/ceos-101/labs/
+docker run -v $LOCAL_WORKSPACE_FOLDER:/data minlag/mermaid-cli -i home-lab/sites/site1/documentation/images/home-lab_network_diagram.mmd -o home-lab/sites/site1/documentation/images/home-lab_network_diagram.svg -c common/scripts/config.json --iconPacks '@iconify-json/clarity' --iconPacks '@iconify-json/logos' --iconPacks '@iconify-json/lucide' --iconPacks '@iconify-json/bi'
+"""
+import yaml
+from pathlib import Path
+import subprocess
+import os
+from collections import defaultdict
+import os,sys
+from pathlib import Path
+import argparse
+import argcomplete
+
+home_dir = Path.home()
+from dotenv import load_dotenv
+
+# Create node groups
+grouped_nodes = defaultdict(list)
+styles = []
+
+dotenv_path = Path(f'.env')
+if not os.path.exists(dotenv_path):
+    sys.exit("Missing file .env in current directory.")
+load_dotenv(dotenv_path=dotenv_path)
+
+PROJECT_NAME_ENV = str(os.getenv('PROJECT_NAME')).strip('"')
+
+DIAGRAM_SITES_ENV = str(os.getenv('DIAGRAM_SITES', None)).strip('"')
+
+# for key, value in os.environ.items():
+#     print(f"{key} = {value}")
+
+
+
+
+
+def mermaid_cli(app_folder,input_filename, output_filename):
+    try:
+        result = subprocess.run([
+            "docker","run","--rm","-v",f"{app_folder}:/data","minlag/mermaid-cli",
+            "-i", str(input_filename),
+            "-o", str(output_filename),
+            #"--puppeteerConfigFile", "scripts/puppeteer-config.json",
+            "--scale", "2",
+            "--iconPacks", "'@iconify-json/clarity'",
+            "--iconPacks", "'@iconify-json/logos'", 
+            "--iconPacks", "'@iconify-json/lucide'", 
+            "--iconPacks", "'@iconify-json/bi'"
+        ], check=True, capture_output=True, text=True)
+
+        print("STDOUT:\n", result.stdout)
+        print("SVG diagram generated successfully.")
+
+    except subprocess.CalledProcessError as e:
+        print("Command failed:")
+        print("STDOUT:\n", e.stdout)
+        print("STDERR:\n", e.stderr)
+        raise
+
+# Load the YAML file
+def process_mermaid_files(topology_file,project_name,diagram_name,avd_doc_dir,avd_doc_name,container_mount,topology_grouping):
+
+    ## MKDIR
+
+    # images Folder
+    ACT_OUTPUT_PATH=f'{avd_doc_dir}/images'
+    # Diagram base name
+    ACT_OUTPUT_NAME=f"{avd_doc_dir}/images/{diagram_name}"
+    # Input README md File
+    AVD_DOCUMENT_PATH=f"{avd_doc_dir}/fabric/{avd_doc_name}"
+    # Local working direcoty
+
+    MERMAID_ACT_OUTPUT_NAME=f"/data/{ACT_OUTPUT_NAME}"
+    Path(f"{ACT_OUTPUT_PATH}").mkdir(parents=True, exist_ok=True)
+
+    yaml_file = f"{topology_file}"
+    print(yaml_file)
+    with open(yaml_file, "r") as f:
+        data = yaml.safe_load(f)
+
+    nodes = {}
+    for node_entry in data["nodes"]:
+        for name, details in node_entry.items():
+            nodes[name] = details
+
+    if topology_grouping is not None:
+        diagram_sites = topology_grouping.split(",")
+        for name in nodes:
+            for site in diagram_sites:
+                #if name.upper().startswith(site):
+                site_name, site_description = site.split("=")
+                if site_name.upper() in name.upper():
+
+                    grouped_nodes[site_description].append(name)
+                    break
+
+    for name in nodes:
+
+        # Style based on BLUE, RED, PURPLE
+        color = None
+        if "BLUE" in name or name.endswith("-B"):
+            color = "#cce5ff"
+        elif "RED" in name or name.endswith("-R"):
+            color = "#ffcccc"
+        elif "PURPLE" in name or name.endswith("-P"):
+            color = "#e6ccff"
+        elif "leaf" in name:
+            color = "#ffffcc"
+        elif "spine" in name:
+            color = "#ccffff"
+        if color:
+            styles.append(f'style {name} fill:{color},stroke:#333,stroke-width:1px')
+
+
+    # Generate Mermaid graph
+    mermaid_lines = ["graph RL"]
+    #mermaid_lines = ["flowchart RL"]
+    # mermaid_lines.append(f"dummy(( )) --> title")
+    # mermaid_lines.append(f"'' --> SPINES")
+
+    mermaid_lines.append(f"subgraph TITLE[\"{project_name}\"]\n    direction TB")
+    for site in diagram_sites:
+        site_name, site_description = site.split("=")
+        mermaid_lines.append(f"    {site_description}")
+    mermaid_lines.append("end")
+    styles.append(f'style TITLE fill:#fafafa,stroke:#ccc,stroke-width:6px,white-space:nowrap;')
+
+    # Add subgraphs for groups
+    for group_name, members in grouped_nodes.items():
+        mermaid_lines.append(f"subgraph {group_name}\n    direction RL")
+        for node in members:
+            mermaid_lines.append(f"    {node}")
+        mermaid_lines.append("end")
+        styles.append(f'style {group_name} fill:#f2f2fa,stroke:#ccc,stroke-width:3px,rx:10,ry:10;')
+
+    # Add links
+    for link in data["links"]:
+        endpoints = link["connection"]
+        if len(endpoints) != 2:
+            continue
+        dev1, dev2 = endpoints
+        dev1_name, port1 = dev1.split(":")
+        dev2_name, port2 = dev2.split(":")
+        port1_s = port1.replace("thernet", "")
+        port2_s = port2.replace("thernet", "")
+
+        mermaid_lines.append(
+            f'    {dev1_name} -- "{port1_s} ⇄ {port2_s}" --> {dev2_name}'
+        )
+
+    # Add styles
+    mermaid_lines += styles
+
+    #mermaid_lines.append(f"style _pad fill:transparent,stroke:transparent")
+    mermaid_diagram = "\n".join(mermaid_lines)
+
+    # Save .mmd file
+    mmd_path = Path(f"{ACT_OUTPUT_NAME}.mmd")
+    mermaid_mmd_path = Path(f"{MERMAID_ACT_OUTPUT_NAME}.mmd")
+    mmd_path.write_text(mermaid_diagram)
+
+    # Generate SVG using Mermaid CLI
+    svg_path = Path(f"{ACT_OUTPUT_NAME}.svg")
+    mermaid_svg_path = Path(f"{MERMAID_ACT_OUTPUT_NAME}.svg")
+
+    mermaid_cli(container_mount,mermaid_mmd_path,mermaid_svg_path)
+
+    png_path = Path(f"{ACT_OUTPUT_NAME}.png")
+    mermaid_png_path = Path(f"{MERMAID_ACT_OUTPUT_NAME}.png")
+    mermaid_cli(container_mount,mermaid_mmd_path,mermaid_png_path)
+
+    print(f"Generated files:\n- {mmd_path}\n- {svg_path}\n- {png_path}")
+    
+    if os.path.exists(AVD_DOCUMENT_PATH):
+        print("Prepending Diagram")
+        print(AVD_DOCUMENT_PATH)
+        insert_text = f"# {project_name} - Network Diagram\n\n"
+        insert_text += f"![Network Diagram](../images/{diagram_name}.svg)\n\n"
+        # Read the existing content
+        with open(AVD_DOCUMENT_PATH, "r") as f:
+            original = f.read()
+
+        # Write new content with inserted text
+        if insert_text.strip() not in original:
+            with open(AVD_DOCUMENT_PATH, "w") as f:
+                f.write(insert_text + original)
+    else:
+        print(f'File does not exist: {AVD_DOCUMENT_PATH}')
+
+def main():
+    parser = argparse.ArgumentParser(description="A script to create a mermaid diagram from the act topology.")
+
+    # Positional arguments
+    parser.add_argument("--topology_file", type=str, help="Act topology inventory file (e.g., 'act/topology.yml').")
+
+    # Optional arguments
+    parser.add_argument("--project_name", type=str, 
+                        help="Project Name.")
+    parser.add_argument("--avd_documentation_dir", type=str, 
+                        help="AVD documentation directory")
+    parser.add_argument("--diagram_name", type=str, 
+                        help="Diagram name. Default <projectname>-network_diagram.")
+    parser.add_argument("--avd_documentation_name", type=str, default="FABRIC-documentation.md", 
+                        help="AVD documentation Filename.")
+    parser.add_argument("--container_mount", type=str,  
+                        help="Specify the containers mount location. Defaults to current directory.")
+    parser.add_argument("--topology_grouping", type=str,  
+                        help="Organize the devices into groups.\nExample: \"s1=SITE1,s2=SITE2\" this would make services starting with s1 grouped into a container names SITE1, \nsame for s2 to SITE2 grouping")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    args = parser.parse_args()
+    argcomplete.autocomplete(parser)
+
+    # Use os.path.split to separate the directory and the filename        
+    TOPO_DIR, TOPO_FILENAME = os.path.split(f'{args.topology_file}')
+    TOPO_FILENAME_BASE, TOPO_FILENAME_EXT = os.path.splitext(TOPO_FILENAME)
+
+    if args.project_name:
+        PROJECT_NAME = f'{args.project_name}'
+    else:
+        if PROJECT_NAME_ENV != None:
+            PROJECT_NAME = f'{PROJECT_NAME_ENV}'
+        else:    
+            PROJECT_NAME = f'{TOPO_FILENAME_BASE}'
+
+    if args.diagram_name:
+        DIAGRAM_NAME = f'{args.diagram_name}'
+    else:
+        DIAGRAM_NAME = f'{PROJECT_NAME}-network_diagram'
+        
+    if args.avd_documentation_dir:
+        AVD_DOC_DIR = f'{args.avd_documentation_dir}'
+    else:
+        AVD_DOC_DIR = f'{os.path.dirname(TOPO_DIR)}/documentation'
+
+    if args.avd_documentation_name:
+        AVD_DOC_NAME = f'{args.avd_documentation_name}'
+    else:
+        AVD_DOC_NAME = f'{os.path.dirname(TOPO_DIR)}/documentation/fabric/FABRIC-documentation.md'
+
+    if args.container_mount:
+        CONTAINER_MOUNT = f'{args.container_mount}'
+    else:
+        CONTAINER_MOUNT = Path.cwd()
+
+    if args.topology_grouping:
+        TOPOLOGY_GROUPING = f'{args.topology_grouping}'
+    else:
+        TOPOLOGY_GROUPING = "s1=SITE1,s2=SITE2"
+    # Use os.path.split to separate the directory and the filename        
+    TOPO_DIR, TOPO_FILENAME = os.path.split(f'{args.topology_file}')
+    
+    if args.verbose:
+        print(f"Running in verbose mode.")
+        print(f"\tHome Directory: {home_dir}")
+        print(f"\tProject Name: {PROJECT_NAME}")
+        print(f"\tDiagram Name: {DIAGRAM_NAME}")
+        print(f"\tTopology file: {TOPO_DIR}/{TOPO_FILENAME}")
+        print(f"\tAVD Documentation Directory: {AVD_DOC_DIR}")
+        print(f"\tAVD Documentation Directory: {AVD_DOC_NAME}")
+        print(f"\tFull Path container mount: {CONTAINER_MOUNT}")
+        print(f"\tTopology Grouping: {TOPOLOGY_GROUPING}")
+
+    process_mermaid_files(args.topology_file,PROJECT_NAME,DIAGRAM_NAME,AVD_DOC_DIR,AVD_DOC_NAME,CONTAINER_MOUNT,TOPOLOGY_GROUPING)
+
+    print("\n--- Script finished ---")
+    print(f"Check '{AVD_DOC_DIR}' for the mermaid files.")
+
+if __name__ == "__main__":
+    main()
