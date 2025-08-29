@@ -1,0 +1,396 @@
+---
+
+
+# interface_profiles:
+#   - name: dot1x
+#     commands:
+#       - dot1x pae authenticator
+#       - dot1x reauthentication
+#       - dot1x port-control auto
+#       - dot1x host-mode multi-host authenticated
+#       - dot1x mac based authentication
+#       - dot1x timeout tx-period 10
+#       - dot1x timeout reauth-period server
+#       - dot1x eapol authentication failure fallback mba timeout 60
+
+
+port_profiles:
+  - profile: Prod_Police_50mbps
+    mode: access
+    vlans: "184"
+    spanning_tree_portfast: edge
+    spanning_tree_bpduguard: true
+
+
+  - profile: Prod_Police_100mbps
+    mode: access
+    vlans: "184"
+    spanning_tree_portfast: edge
+    spanning_tree_bpduguard: true
+
+  - profile: Prod_Police_500mbps
+    mode: access
+    vlans: "184"
+    spanning_tree_portfast: edge
+    spanning_tree_bpduguard: true
+      
+  - profile: common
+    spanning_tree_portfast: edge
+    spanning_tree_bpduguard: true
+    flowcontrol:
+      received: "on"
+    # storm_control:
+    #   broadcast:
+    #     level: 10
+    #   multicast:
+    #     level: 10
+    #   unknown_unicast:
+    #     level: 10
+    structured_config:
+      shutdown: false
+# SITE5aki MX
+  - profile: SITE5AKI_MX_TRUNK
+    mode: trunk
+    vlans: "110,150,155,160,165,171-183"
+    native_vlan: 110
+
+  - profile: SITE5AKI_TRANSIT
+    mode: trunk
+    # native_vlan: 99
+    vlans: "99"
+    # spanning_tree_bpduguard: true
+
+# Pdeudowire
+  - profile: Pseudowire_Police_50
+    enabled: true
+    structured_config:
+      switchport:
+        enabled: false
+    # raw_eos_cli: |-
+    #   policer profile 50mbps input          
+
+  - profile: Pseudowire_Police_100
+    enabled: true
+    structured_config:
+      switchport:
+        enabled: false
+
+  - profile: Pseudowire_Police_500
+    enabled: true
+    structured_config:
+      switchport:
+        enabled: false
+
+
+# WAN
+  - profile: WAN_SITE5_BELL
+    mode: access
+    vlans: "5"
+  - profile: WAN_SITE5_ROGERS
+    mode: access
+    vlans: "6"
+
+# Wifi
+  - profile: Wifi
+    mode: access
+    vlans: "111"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+
+# Network MGMT
+  - profile: NetworkMgmt_site1
+    # parent_profile: common
+    mode: access
+    vlans: "112"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: NetworkMgmt_site2
+    # parent_profile: common
+    mode: access
+    vlans: "212"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: NetworkMgmt_site3
+    # parent_profile: common
+    mode: access
+    vlans: "312"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: NetworkMgmt_site5
+    # parent_profile: common
+    mode: access
+    vlans: "512"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+  # EdgeDeviceControl
+  - profile: EdgeDeviceControl_site1
+    mode: access
+    vlans: "113"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: EdgeDeviceControl_site2
+    mode: access
+    vlans: "213"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: EdgeDeviceControl_site3
+    mode: access
+    vlans: "313"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: EdgeDeviceControl_site5
+    mode: access
+    vlans: "513"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+# Intercom
+  - profile: Intercom_site1
+    mode: access
+    vlans: "120"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: Intercom_site2
+    mode: access
+    vlans: "220"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: Intercom_site3
+    mode: access
+    vlans: "320"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: Intercom_site5
+    mode: access
+    vlans: "520"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+
+  # JXSVideoTraffic Blue
+  - profile: JXSVideoTrafficBlue_site1
+    mode: access
+    vlans: "130"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: JXSVideoTrafficBlue_site2
+    mode: access
+    vlans: "230"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: JXSVideoTrafficBlue_site3
+    mode: access
+    vlans: "330"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: JXSVideoTrafficBlue_site5
+    mode: access
+    vlans: "530"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+  # JXSVideoTraffic Red
+  - profile: JXSVideoTrafficRed_site1
+    mode: access
+    vlans: "131"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: JXSVideoTrafficRed_site2
+    mode: access
+    vlans: "231"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: JXSVideoTrafficRed_site3
+    mode: access
+    vlans: "331"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: JXSVideoTrafficRed_site5
+    mode: access
+    vlans: "531"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+# HaivisionSRTTrafficBlue
+  - profile: HaivisionSRTTrafficBlue_site1
+    mode: access
+    vlans: "135"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: HaivisionSRTTrafficBlue_site2
+    mode: access
+    vlans: "235"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: HaivisionSRTTrafficBlue_site3
+    mode: access
+    vlans: "335"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: HaivisionSRTTrafficBlue_site5
+    mode: access
+    vlans: "535"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+# HaivisionSRTTraffic Red
+  - profile: HaivisionSRTTrafficRed_site1
+    mode: access
+    vlans: "136"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: HaivisionSRTTrafficRed_site2
+    mode: access
+    vlans: "236"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: HaivisionSRTTrafficRed_site3
+    mode: access
+    vlans: "336"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: HaivisionSRTTrafficRed_site5
+    mode: access
+    vlans: "536"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+# DataTransferEVS
+  - profile: DataTransferEVS_site1
+    mode: access
+    vlans: "140"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: DataTransferEVS_site2
+    mode: access
+    vlans: "240"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+# InternetLANDistributionClients
+  # Client 1
+  - profile: ILD1_10mbps_client_site1
+    mode: access
+    vlans: "150"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD1_10mbps_client_site2
+    mode: access
+    vlans: "250"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  # Client 2
+  - profile: ILD2_25mbps_client_site1
+    mode: access
+    vlans: "155"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD2_25mbps_client_site2
+    mode: access
+    vlans: "255"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  # Client 3
+  - profile: ILD3_50mbps_client_site1
+    mode: access
+    vlans: "160"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD3_50mbps_client_site2
+    mode: access
+    vlans: "260"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  # Client 4
+  - profile: ILD4_100mbps_client_site1
+    mode: access
+    vlans: "165"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD4_100mbps_client_site2
+    mode: access
+    vlans: "265"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  # Client 5
+  - profile: ILD5_500mbps_client_site1
+    mode: access
+    vlans: "171"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD5_500mbps_client_site2
+    mode: access
+    vlans: "271"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  # Client 6
+  - profile: ILD6_1000mbps_client_site1
+    mode: access
+    vlans: "172"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD6_1000mbps_client_site2
+    mode: access
+    vlans: "272"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+
+# InternetLANDistributionProduction 
+  # Prod 1
+  - profile: ILD1_50mbps_prod_site1
+    mode: access
+    vlans: "181"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD1_50mbps_prod_site2
+    mode: access
+    vlans: "281"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  # Prod 2
+  - profile: ILD2_100mbps_prod_site1
+    mode: access
+    vlans: "182"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD2_100mbps_prod_site2
+    mode: access
+    vlans: "282"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  # Prod 3
+  - profile: ILD3_500mbps_prod_site1
+    mode: access
+    vlans: "183"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD3_500mbps_prod_site2
+    mode: access
+    vlans: "283"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD3_200mbps_prod_site3
+    mode: access
+    vlans: "383"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+  # Prod 4
+  - profile: ILD4_1000mbps_prod_site1
+    mode: access
+    vlans: "184"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+  - profile: ILD4_1000mbps_prod_site2
+    mode: access
+    vlans: "284"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge
+
+  - profile: ILD4_1000mbps_prod_site3
+    mode: access
+    vlans: "384"
+    spanning_tree_bpduguard: true
+    spanning_tree_portfast: edge

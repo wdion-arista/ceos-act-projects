@@ -1,0 +1,7 @@
+---
+ansible_user: cvpadmin
+ansible_ssh_pass: blabla
+ansible_become: yes
+# ansible_become_method: enable
+
+ansible_python_interpreter: /usr/bin/python3

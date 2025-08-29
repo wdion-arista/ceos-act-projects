@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Define the directory to list folders from.
+TARGET_DIR="./labs/"
+
+# Check if fzf is installed
+if ! command -v fzf &> /dev/null; then
+    echo "Error: fzf is not installed. Please install it to use this script."
+    exit 1
+fi
+
+echo "### Interactive Folder Menu with fzf ###"
+
+# Use fzf to select a directory
+# -d prevents fzf from displaying files
+# -1 ensures fzf exits immediately after a single selection
+# -0 ensures it outputs the result without a newline, which is cleaner
+selected_dir=$(find "$TARGET_DIR" -maxdepth 1 -type d | fzf)
+
+# Check if a directory was selected
+if [ -z "$selected_dir" ]; then
+    echo "No folder selected. Exiting."
+    exit 0
+fi
+
+echo "Navigating to: $selected_dir"
+cd "$selected_dir" || { echo "Error: Could not change directory."; exit 1; }
+echo "You are now in: $(pwd)"

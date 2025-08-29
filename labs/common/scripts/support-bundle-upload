@@ -1,0 +1,173 @@
+#!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
+#
+# pip install PyJWT
+import yaml
+import os,sys
+import copy
+from pathlib import Path
+import argparse
+import argcomplete
+import jwt
+import datetime
+import requests
+
+from dotenv import load_dotenv
+import ruamel.yaml
+
+# Determine the home directory
+home_dir = Path.home()
+
+def create_upload_token(secret_key, validity_days=3):
+    """
+    Generates a JWT bearer token for file uploads.
+
+    Args:
+        secret_key (str): The secret key to sign the token. Must be kept private
+                          and be the same as the key used by the verifier.
+        validity_days (int): The number of days the token will be valid for.
+
+    Returns:
+        str: The encoded JWT token.
+    """
+    try:
+        # 1. Set the expiration time for the token
+        expiration_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=validity_days)
+
+        # 2. Create the payload for the token
+        #    'exp': (Expiration Time) is a registered claim that is checked automatically.
+        #    'iat': (Issued At) is the time the token was generated.
+        #    'scope': A custom claim to define the token's permissions. The server
+        #             will check this to grant access to specific actions.
+        payload = {
+            'exp': expiration_time,
+            'iat': datetime.datetime.now(datetime.timezone.utc),
+            'scope': 'file_upload' 
+        }
+
+        # 3. Encode the token with the secret key using the HS256 algorithm
+        encoded_token = jwt.encode(
+            payload,
+            secret_key,
+            algorithm="HS256"
+        )
+
+        return encoded_token
+
+    except Exception as e:
+        print(f"An error occurred while generating the token: {e}")
+        return None
+
+def get_user_info(token,url):
+    """
+    Fetches user information from the Egnyte API.
+
+    Args:
+        token (str): The bearer token for authentication.
+
+    Returns:
+        dict: A dictionary containing the user information, or None if an error occurs.
+    """
+    # The API endpoint URL
+    api_url = f"{url}"
+
+    # Set up the headers, including the Authorization header with the bearer token
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    print(f"Sending request to: {api_url}")
+    print(f"Using headers: {headers}")
+
+    try:
+        # Make the GET request to the API
+        response = requests.get(api_url)# , headers=headers)
+
+        # This will raise an exception for HTTP errors (like 401 Unauthorized or 404 Not Found)
+        response.raise_for_status()
+
+        # If the request was successful, parse the JSON response
+        user_data = response.json()
+        return user_data
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"❌ HTTP error occurred: {http_err}")
+        print(f"Response Body: {response.text}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"❌ A request error occurred: {req_err}")
+    except json.JSONDecodeError:
+        print("❌ Failed to decode JSON from the response.")
+        print(f"Response Body: {response.text}")
+    
+    return None
+
+
+
+def upload_file_egnyte(source_sb_filename, egnyte_token, egnyte_folder):
+    """
+    EGNYTE Upload
+    """
+    domain_name = "aristanetworks"
+    token = "gjjwym3vwbgqgfbm9g3dvsfy"
+    redirect = "https://www.arista.com"
+    domainpath = f"https://{domain_name}.egnyte.com"
+    print(domainpath)
+    #auth_url = f"{domainpath}/token?client_id={token}&redirect_uri={redirect}&scope=<SELECTED SCOPES>&state=<STRING>&response_type=code"
+    auth_url = f"{domainpath}/puboauth/token?client_id={token}&redirect_uri={redirect}/oauth&scope=Egnyte.filesystem%20Egnyte.link&response_type=code"
+    url = f"{domainpath}/v1/token"
+    get_user_info(token,auth_url)
+
+"""
+curl -X POST \
+https://aristanetworks.egnyte.com/puboauth/token \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "client_id=gjjwym3vwbgqgfbm9g3dvsfy" \
+-d "client_secret=qBZX2dJmeq9CVfZmkyJCgSbhhqydzcNeZyxzsfMK7ZpaPhSy" \
+-d "username=arista_uploader" \
+-d "password=FluffyBunn13s" \
+-d "grant_type=password"
+
+https://aristanetworks.egnyte.com/ul/rataEZqDbm
+https://aristanetworks.egnyte.com/puboauth/token?client_id=gjjwym3vwbgqgfbm9g3dvsfy&redirect_uri=https://localhost&response_type=code
+https://aristanetworks.egnyte.com/puboauth/token?client_id=48u8h5284aspt5dkku4pxt5j&redirect_uri=https://localhost&response_type=code
+https://aristanetworks.egnyte.com/fl/VypT9xwmdCdV
+"""
+def main():
+    parser = argparse.ArgumentParser(description="A script to upload the support bundle to Egnyte")
+
+    # Positional arguments
+    parser.add_argument("--filename", type=str, help="Support bundle filename")
+    parser.add_argument("--token", type=str, help="Bearer token for upload")
+    parser.add_argument("--folder", type=str, help="Folder location on Egnyte")
+    
+    # Optional arguments
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output.")
+    args = parser.parse_args()
+    argcomplete.autocomplete(parser)
+
+    if args.verbose:
+        print(f"Running in verbose mode.")
+        print(f"Inventory file: {args.filename}")
+        print(f"Fabric Name: {args.token}")
+        print(f"Inventory Type: {args.folder}")
+    if args.filename is None:
+        print("No file Specified")
+        exit()
+
+    if not os.path.exists(args.filename):
+        sys.exit(f"Error: Missing {args.filename} file. Please create one.")
+
+    sb_directory, sb_filename = os.path.split(f'{args.filename}')
+    if sb_directory == "":
+        print("empty dir")
+        sb_directory = "."    
+    
+    SOURCE_SB_FILENAME = f'{sb_directory}/{sb_filename}'
+
+    upload_file_egnyte(SOURCE_SB_FILENAME, args.token, args.folder)
+
+    print("\n--- Script finished ---")
+    print("It has been uploaded")
+
+if __name__ == "__main__":
+    main()

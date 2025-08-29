@@ -1,0 +1,12 @@
+- name: Test if global_vars are loaded
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    # - name: Print the test variable from inv
+    #   ansible.builtin.debug:
+    #     msg: "{{ inventory_dir }}"
+
+    - name: Print the test variable from global_vars
+      ansible.builtin.debug:
+        msg: "{{ global_vars_status }}"
+

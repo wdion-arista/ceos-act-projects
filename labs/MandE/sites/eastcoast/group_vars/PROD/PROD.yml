@@ -1,0 +1,18 @@
+mgmt_cidr: 24
+fabric_name: PROD
+static_routes:
+  - vrf: MGMT
+    # IPv4_network/Mask.
+    destination_address_prefix: 0.0.0.0/0
+    gateway: 10.1.57.1
+    name: "Default_mgmt_route_0"
+
+
+generate_cv_tags:
+  topology_hints: true
+  campus_fabric: true
+  device_tags:
+    - name: environment
+      value: PROD
+    - name: device_model
+      data_path: metadata.platform

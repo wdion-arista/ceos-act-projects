@@ -1,0 +1,29 @@
+---
+- name: Manage Arista EOS Configuration
+  hosts: "{{ target_hosts | default('FABRIC') }}"
+  connection: local
+  gather_facts: false
+  vars:
+    global_vars_on: "True"
+  tasks:
+
+    - name: Import Global Vars
+      ansible.builtin.include_vars: "{{ item }}"
+      with_items:
+        - "../global_vars/global_dc_vars.yml"
+      when: global_vars_on == "True"
+
+    - name: Generate intended variables
+      ansible.builtin.import_role:
+        name: arista.avd.eos_designs
+      vars:
+        eos_designs_documentation:
+          enable: true
+        avd_eos_designs_debug: true
+
+    - name: Generate device intended config and documentation
+      ansible.builtin.import_role:
+        name: arista.avd.eos_cli_config_gen
+      vars:
+        eos_cli_config_gen_documentation:
+          enable: true

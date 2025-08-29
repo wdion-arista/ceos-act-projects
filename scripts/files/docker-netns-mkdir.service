@@ -1,0 +1,12 @@
+[Unit]
+Description=Create /run/docker/netns directory
+After=network.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mkdir -p /run/docker/netns
+ExecStartPost=/usr/bin/chown root:docker /run/docker/netns # Optional: Adjust permissions if needed
+ExecStartPost=/usr/bin/chmod 755 /run/docker/netns # Optional: Adjust permissions if needed
+
+[Install]
+WantedBy=multi-user.target

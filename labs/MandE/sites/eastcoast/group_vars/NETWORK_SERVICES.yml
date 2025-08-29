@@ -1,0 +1,50 @@
+# ---
+# tenants:
+#   # Definition of tenants. Additional level of abstraction to VRFs
+#   - name: TENANT1
+#     pseudowire_rt_base: 1000
+#     point_to_point_services:
+#       - name: pw25
+#         endpoints:
+#           - id: 1
+#             nodes:
+#               - SW101-SITE1-B
+#             interfaces:
+#               - Ethernet25
+#           - id: 2
+#             nodes:
+#               - SW102-SITE1-R
+#             interfaces:
+#               - Ethernet25
+
+#         lldp_disable: true
+
+    # point_to_point_services:
+    #   - name: pw25
+    #     type: pseudowire
+    #     connectors:
+    #       - interface: Ethernet25
+    #       - pseudowire:
+    #           name: pw25
+    #           mpls:
+    #             static:
+    #               local_label: 1001
+    #               neighbor_label: 1001
+    #               control_word: true
+    #     transport_tunnel: Tunnel1
+
+  # router_interfaces:
+  #   - name: Tunnel1
+  #     description: GRE_TUNNEL_FOR_PW25
+  #     type: tunnel
+  #     vrf: default
+  #     tunnel:
+  #       mode: gre
+  #       source: 10.1.30.1
+  #       destination: 10.1.30.5
+  #       decap_source: any
+
+mpls:
+  ip: true
+  # pseudowires:
+  #   static: true

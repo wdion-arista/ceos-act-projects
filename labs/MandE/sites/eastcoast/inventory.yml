@@ -1,0 +1,188 @@
+all:
+  children:
+    CLOUDVISION:
+      hosts:
+        cvp:
+          ansible_connection: httpapi
+          ansible_host: 10.18.181.182
+          ansible_httpapi_use_ssl: true
+          ansible_httpapi_validate_certs: false
+    PROD:
+      children:
+        EASTCOAST_FABRIC:
+          children:
+            BLUE_SPINES:
+              children:
+                SITE1_BLUE_SPINES:
+                  hosts:
+                    SW101-SITE1-B:
+                      ansible_host: 172.20.20.4
+            RED_SPINES:
+              children:
+                SITE1_RED_SPINES:
+                  hosts:
+                    SW102-SITE1-R:
+                      ansible_host: 10.18.140.177
+            BLUE_LEAFS:
+              children:
+                SITE2_BLUE_LEAFS:
+                  hosts:
+                    SW201-SITE2-B:
+                      ansible_host: 10.18.140.176
+                SITE4_BLUE_LEAFS:
+                  hosts:
+                    SW401-SITE4-B:
+                      ansible_host: 10.18.140.174
+                SITE5_BLUE_LEAFS:
+                  hosts:
+                    SW501-SITE5-B:
+                      ansible_host: 10.18.140.117
+            RED_LEAFS:
+              children:
+                SITE2_RED_LEAFS:
+                  hosts:
+                    SW202-SITE2-R:
+                      ansible_host: 10.18.136.185
+                SITE4_RED_LEAFS:
+                  hosts:
+                    SW402-SITE4-R:
+                      ansible_host: 10.18.137.105
+                SITE5_RED_LEAFS:
+                  hosts:
+                    SW502-SITE5-R:
+                      ansible_host: 10.18.136.188
+            PURPLE_LEAFS:
+              children:
+                SITE1_PURPLE_LEAFS:
+                  hosts:
+                    SW103-SITE1-P:
+                      ansible_host: 10.18.140.173
+                SITE2_PURPLE_LEAFS:
+                  hosts:
+                    SW203-SITE2-P:
+                      ansible_host: 10.18.130.206
+                SITE3_PURPLE_LEAFS:
+                  hosts:
+                    SW301-SITE3-P:
+                      ansible_host: 10.18.140.172
+    NETWORK_SERVICES:
+      children:
+        SITE1_BLUE_SPINES: null
+        SITE1_RED_SPINES: null
+        SITE5_BLUE_LEAFS: null
+        SITE5_RED_LEAFS: null
+
+    SITES:
+      children:
+        SITE1:
+          children:
+            SITE1_BLUE_SPINES: null
+            SITE1_RED_SPINES: null
+            SITE1_PURPLE_LEAFS: null
+    TENANTS_NETWORKS:
+      children:
+        BLUE_SPINES: null
+        RED_SPINES: null
+        BLUE_LEAFS: null
+        RED_LEAFS: null
+        PURPLE_LEAFS: null
+    SITE1_CONNECTED_ENDPOINTS:
+      children:
+        SITE1_BLUE_SPINES: null
+        SITE1_RED_SPINES: null
+        SITE1_PURPLE_LEAFS: null
+    SITE2_CONNECTED_ENDPOINTS:
+      children:
+        SITE2_BLUE_LEAFS: null
+        SITE2_RED_LEAFS: null
+        SITE2_PURPLE_LEAFS: null
+    SITE3_CONNECTED_ENDPOINTS:
+      children:
+        SITE3_PURPLE_LEAFS: null
+    SITE4_CONNECTED_ENDPOINTS:
+      children:
+        SITE4_BLUE_LEAFS: null
+        SITE4_RED_LEAFS: null
+    SITE5_CONNECTED_ENDPOINTS:
+      children:
+        SITE5_BLUE_LEAFS: null
+        SITE5_RED_LEAFS: null
+    PORT_PROFILES:
+      children:
+        BLUE_SPINES: null
+        RED_SPINES: null
+        BLUE_LEAFS: null
+        RED_LEAFS: null
+        PURPLE_LEAFS: null
+    # PLATFORM_SETTINGS:
+    #   children:
+    #     SITE1_BLUE_SPINES: null
+    #     SITE1_RED_SPINES: null
+    #     SITE5_BLUE_LEAFS: null
+    #     SITE5_RED_LEAFS: null
+    # MONITOR_7280SR:
+    #   children:
+    #     SITE1_BLUE_SPINES: null
+    #     SITE1_RED_SPINES: null
+    #     BLUE_LEAFS: null
+    #     RED_LEAFS: null
+    MONITOR_720XP:
+      children:
+        PURPLE_LEAFS: null
+
+    SERVERS:
+      children:
+        SITE1_SERVERS:
+          hosts:
+            banff-server1:
+              ansible_host: 10.18.136.194
+              interfaces:
+              - name: et1
+                ip: 10.1.30.10/24
+              - name: et2
+                ip: 10.1.31.10/24
+              - name: et3
+                ip: 10.1.35.10/24
+              gw: 10.1.35.1
+        SITE2_SERVERS:
+          hosts:
+            pkml-server1:
+              ansible_host: 10.18.136.193
+              interfaces:
+              - name: et1
+                ip: 10.2.30.10/24
+              - name: et2
+                ip: 10.2.31.10/24
+              - name: et3
+                ip: 10.2.35.10/24
+              gw: 10.2.35.1
+        SITE3_SERVERS:
+          hosts:
+            yyc-server1:
+              ansible_host: 10.18.140.171
+              interfaces:
+              - name: et1
+                ip: 10.3.30.10/24
+              - name: et2
+                ip: 10.3.31.10/24
+              - name: et3
+                ip: 10.3.35.10/24
+              gw: 10.3.35.1
+        SITE5_SERVERS:
+          hosts:
+            toronto-server1:
+              ansible_host: 10.18.140.168
+              interfaces:
+              - name: et1
+                ip: 10.5.30.10/24
+              - name: et2
+                ip: 10.5.31.10/24
+              - name: et3
+                ip: 10.5.35.10/24
+              gw: 10.5.35.1
+    TOOLS:
+      children:
+        TOOLSSERVER:
+          hosts:
+            tools-server:
+              ansible_host: 10.18.190.8
