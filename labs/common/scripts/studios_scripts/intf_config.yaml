@@ -1,0 +1,6 @@
+---
+VISION-L01-SW13:
+  Ethernet1:
+    enabled: true
+    description: "test 42"
+
