@@ -128,3 +128,8 @@
       until: cv_onboarding_token.status == 200
       retries: 10
       delay: 2
+
+    - name: Ensure the tok file is deleted
+      ansible.builtin.file:
+        path: ./cvaas-token.tok
+        state: absent

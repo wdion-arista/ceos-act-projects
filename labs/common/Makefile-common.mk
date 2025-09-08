@@ -426,7 +426,7 @@ act-register-devices-to-cvaas-mgmt: ## Run ansible playbook migrate device to cv
 			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 			-e "root_dir={{ inventory_dir }}/act" \
 			-e "terminattr_vrf=MGMT" \
-			-e "terminattr_interface=Vlan99" \
+			-e "terminattr_interface=Vlan101" \
 			$(ANSIBLE_ARGS) ; \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
@@ -1093,3 +1093,82 @@ act-wan-build-merge: ## Merge act wan connecitons files
 
 	@echo "This Makefile's command: $(SITES)"
 	@python3 $(COMMON_PATH)/scripts/act_build_merge
+
+### Studios
+
+
+.PHONY: studios-interface-input-get-lab
+studios-interface-input-get-lab: ## Get Studios input (export) in for Campus fabric in YAML file
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVAAS_SERVER_LAB"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_update.py \
+			--server "$$CVAAS_SERVER_LAB" \
+			--token "$$CVAAS_TOKEN_LAB" \
+			--operation get \
+			--studio-id studio-campus-access-interfaces \
+			--output-folder "$$dir/studios/lab" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: studios-build-quick-actions-lab
+studios-build-quick-actions-lab: ## Build quick actions to lab using tsv
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVAAS_SERVER_LAB"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_build_ports_for_quick_actions.py \
+			--server "$$CVAAS_SERVER_LAB" \
+			--token "$$CVAAS_TOKEN_LAB" \
+			--file-interface-tsv "$$dir/studios/studio-campus-ports.tsv" \
+			--file-interface-studio-inputs "$$dir/studios/lab/studio-campus-access-interfaces-inputs.yaml" \
+			--file-interface-studio-output "$$dir/studios/lab/studio-campus-access-interfaces-inputs-new.yaml" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: studios-interface-input-set-lab
+studios-interface-input-set-lab: ## Set Studios inputs (import) for Campus fabric based on YAML file
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVAAS_SERVER_LAB"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_update.py \
+			--server "$$CVAAS_SERVER_LAB" \
+			--token "$$CVAAS_TOKEN_LAB" \
+			--operation set \
+			--studio-id studio-campus-access-interfaces \
+			--yaml-file "$$dir/studios/lab/studio-campus-access-interfaces-inputs-new.yaml" \
+			--build-only=True \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
