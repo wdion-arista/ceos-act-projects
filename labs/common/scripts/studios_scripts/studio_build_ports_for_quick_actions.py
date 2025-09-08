@@ -5,31 +5,6 @@
 # Script source: https://github.com/aristanetworks/cloudvision-python/tree/trunk/examples/resources/tag/v2
 #
 #
-# Get tags per device per interface or all tags
-# Example usage:
-# 1) Get all tags:
-#    python3 get_tags.py --server 192.0.279:443 --token-file token.txt \
-#     --cert-file cvp.crt
-#
-# 2) Get all tags for a device:
-#    python3 get_tags.py --server 192.0.279:443 --token-file token.txt \
-#    --cert-file cvp.crt --device-id 99500CA623B639E85FE0E684862C7103
-#
-# 3) Get all tags for an interface of a device
-#    python3 get_tags.py --server 192.0.279:443 --token-file token.txt \
-#    --cert-file cvp.crt --device 99500CA623B639E85FE0E684862C7103 \
-#    --interface_id Ethernet1
-#
-# 4) Get all interfaces that have a specific tag assigned:
-#    python3 get_tags.py --server 192.0.279:443 --token-file token.txt \
-#    --cert-file cvp.crt --device 99500CA623B639E85FE0E684862C7103 \
-#    --tag-label 'lldp_chassis' --tag-type 2
-#
-# 5) Get all interfaces that have a tag with a specific value:
-#    python3 get_tags.py --server 192.0.279:443 --token-file token.txt \
-#    --cert-file cvp.crt --device 99500CA623B639E85FE0E684862C7103 \
-#    --tag-value 'forced' --tag-type 2
-
 
 import argparse
 import sys,os
@@ -44,10 +19,6 @@ import pprint
 
 RPC_TIMEOUT = 30  # in seconds
 
-
-FILE_YAML_STUDIO='configs/studio-campus-access-interfaces-inputs.yaml'
-
-        
 def to_int_if_possible(value):
     """
     Attempts to convert a value to an integer. If it fails,
@@ -203,9 +174,16 @@ def tsv_to_list_of_dicts(filename):
 
 def main(args):
     # Read the file containing a session token to authenticate with
-    token = args.token_file.read().strip()
+    
+    if args.token:
+        cv_token = args.token
+    elif args.token_file:
+        cv_token = args.token_file.read().strip()
+    else:
+        exit('Please supply a token in text(--token) or file (--token-file)')
+
     # Create the header object for the token
-    callCreds = grpc.access_token_call_credentials(token)
+    callCreds = grpc.access_token_call_credentials(cv_token)
 
     # If using a self-signed certificate (should be provided as arg)
     if args.cert_file:
@@ -263,7 +241,8 @@ def main(args):
             devices.append({'name':dev['value'], 'deviceId': dev['deviceId']})
 
     sorted_devices = sorted(devices, key=lambda item: item['name'])
-    output_filename = 'configs/studio_device_tags.yaml'
+    inv_directory, inv_filename = os.path.split(f'{args.file_interface_studio_inputs}')
+    output_filename = f'{inv_directory}/studio_device_tags.yaml'
     with open(output_filename, 'w') as yaml_file:
         yaml.dump(sorted_devices, yaml_file, indent=2)
 
@@ -309,8 +288,10 @@ if __name__ == "__main__":
         "--server", required=True, help="CloudVision server to connect to in <host>:<port> format"
     )
     parser.add_argument(
-        "--token-file", required=True, type=argparse.FileType("r"), help="file with access token"
+        "--token-file", type=argparse.FileType("r"), help="file with access token"
     )
+    parser.add_argument(
+        "--token", help="access token text")    
     parser.add_argument(
         "--cert-file", type=argparse.FileType("rb"), help="certificate to use as root CA"
     )

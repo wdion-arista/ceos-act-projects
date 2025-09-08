@@ -630,8 +630,10 @@ if __name__ == '__main__':
                         metavar="www.arista.io|192.0.2.10:443",
                         help=("endpoint for CVP on-prem cluster or CVaaS tenant "
                               "(must be the www endpoint in case of CVaaS)"))
-    parser.add_argument("--token-file", required=True, type=argparse.FileType('r'),
+    parser.add_argument("--token-file", type=argparse.FileType('r'),
                         help="file with access token")
+    parser.add_argument("--token", 
+                        help="access token text")
     parser.add_argument("--cert-file", type=argparse.FileType('rb'),
                         help="file with certificate to use as root CA")
     parser.add_argument("--operation", choices=['set', 'get'], default='get',
@@ -654,8 +656,14 @@ if __name__ == '__main__':
     studio_id = pargs.studio_id
     if pargs.action_id:
         action_id = pargs.action_id
+    if pargs.token:
+        cv_token = pargs.token
+    elif pargs.token_file:
+        cv_token = pargs.token_file.read().strip()
+    else:
+        exit('Please supply a token in text(--token) or file (--token-file)')
     conn = cv_client(
-        server=pargs.server, token=pargs.token_file.read().strip(),
+        server=pargs.server, token=cv_token,
         cert_file=pargs.cert_file
     )
 
