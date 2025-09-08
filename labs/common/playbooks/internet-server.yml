@@ -16,12 +16,6 @@
   gather_facts: true
 
   tasks:
-    # - name: Install update (Can take +10 mins)
-    #   ansible.builtin.command: sudo apt update -y
-    #   register: task_result
-    #   failed_when: task_result.rc != 0
-    #   ignore_errors: true
-    #   changed_when: task_result.rc != 0 # <- Uses the return code to define when the task has changed.
 
     - name: Install or update iperf3
       become: true
@@ -33,13 +27,6 @@
           - lldpd
         state: present
 
-    # - name: Writing ip_forward
-    #   tags: [build]
-    #   ansible.builtin.copy:
-    #     content: "net.ipv4.ip_forward=1"
-    #     dest: "/etc/sysctl.conf"
-    #     mode: u=rw,g=r,o=r
-
     - name: Writing ip_forward
       tags: [build]
       vars:
@@ -50,6 +37,24 @@
         marker: "# {mark} ANSIBLE MANAGED INTERFACES BLOCK"
       register: ip_forward_block_result
 
+    - name: Writing ip address
+      tags: [build]
+      vars:
+        ansible_become: true
+      ansible.builtin.blockinfile:
+        path: /sbin/act-network-create
+        block: sudo ip addr add "{{ hostvars[inventory_hostname].inband_ip }}" dev  et1
+        marker: "# {mark} ANSIBLE MANAGED INTERFACES BLOCK IPS"
+      register: ips__block_result
+
+
+    - name: Check for existing IP on interface et1
+      ansible.builtin.command:
+        cmd: ip addr show dev et1
+      register: ip_addr_output
+      changed_when: false # This check never changes the system
+
+
     - name: IP set et1
       ansible.builtin.shell:
         executable: /bin/bash
@@ -59,7 +64,18 @@
       register: et1_ip_out
       changed_when: et1_ip_out.rc
       ignore_errors: true
+      when: hostvars[inventory_hostname].inband_ip not in ip_addr_output.stdout
 
+    - name: Get all current iptables rules
+      ansible.builtin.shell:
+        cmd: iptables-save
+      register: iptables_rules
+      changed_when: false
+      check_mode: false # This task should always run, even in check mode
+
+    - name: Print the test variable from iptables
+      ansible.builtin.debug:
+        msg: "{{ iptables_rules }}"
 
     - name: IP tables
       ansible.builtin.shell:
@@ -69,12 +85,73 @@
           sudo sysctl -p
           sudo iptables -t nat -A POSTROUTING -o ens4 -j MASQUERADE
           sudo iptables -A FORWARD -i tun0 -o ens4 -j ACCEPT
-          sudo iptables -A FORWARD -i tun0 -o et1 -j ACCEPT
+          sudo iptables -A FORWARD -i et1 -o ens4 -j ACCEPT
           sudo iptables -A FORWARD -i ens4 -o tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-          sudo iptables -A FORWARD -i et1 -o tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+          sudo iptables -A FORWARD -i ens4 -o et1 -m state --state RELATED,ESTABLISHED -j ACCEPT
           sudo netfilter-persistent save
       register: iptables_out
       changed_when: iptables_out.rc
+      when: "'-A FORWARD -i et1 -o ens4 -j ACCEPT' not in iptables_rules.stdout"
+
+    - name: Check if route exists
+      ansible.builtin.command:
+        cmd: sudo ip route show {{ item.route }}
+      register: route_check
+      become: true
+      changed_when: false  # Prevent false "changed" status
+      ignore_errors: true   # Allow failure if route doesn't exist
+      loop: "{{ routes | default([]) }}"
+      loop_control:
+        label: "{{ item.route }}"
+
+    - name: Print the test variable from routes
+      ansible.builtin.debug:
+        msg: "{{ route_check }}"
+
+    - name: Add IPv4 Gateway
+      ansible.builtin.command:
+        cmd: ip route add {{ item.item.route }} via {{ item.item.gw }} dev {{ item.item.name }}
+      become: true
+      loop: "{{ route_check.results }}"
+      when: item.stdout == ""
+      loop_control:
+        label: "{{ item.item.route }}"
+      register: route_check_done
+
+    - name: Print the test variable from GW
+      ansible.builtin.debug:
+        msg: "{{ route_check_done }}"
+
+    - name: Writing ip routes
+      tags: [build]
+      vars:
+        ansible_become: true
+      ansible.builtin.blockinfile:
+        path: /sbin/act-network-create
+        state: present
+        marker: "# {mark} ANSIBLE MANAGED INTERFACES BLOCK ROUTES"
+        block: |
+          # The indentation here is critical for correct YAML formatting
+          {% for item in routes %}
+          ip route add {{ item.route }} via {{ item.gw }} dev {{ item.name }}
+          {% endfor %}
+      register: routes_block_result
+
+
+
+    # - name: Add multicast ips on et1 - et2
+    #   ansible.builtin.command: ip route add {{ item.ip }} dev {{ item.dev }}
+    #   loop:
+    #     - { ip: "236.1.2.11/32", dev: "et1" }
+    #     - { ip: "236.1.2.12/32", dev: "et1" }
+    #     - { ip: "236.1.2.13/32", dev: "et1" }
+    #     - { ip: "236.2.2.11/32", dev: "et2" }
+    #     - { ip: "236.2.2.12/32", dev: "et2" }
+    #     - { ip: "236.2.2.13/32", dev: "et2" }
+    #   become: true
+    #   ignore_errors: true
 
 # sudo ip addr add "10.99.0.1" dev  et1
 # sudo iptables -A FORWARD -i tun0 -o et1 -j ACCEPT
+
+# sudo ip route add 10.126.1.0/24 via 10.126.128.4 dev et1
