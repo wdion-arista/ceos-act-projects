@@ -8,7 +8,7 @@
 FROM ghcr.io/srl-labs/containerlab/devcontainer-dood:latest
 # FROM ghcr.io/aristanetworks/avd/universal:${AVD_VERSION}
 
-ARG AVD_VERSION="5.5.1"
+ARG AVD_VERSION="5.6.0"
 ENV AVD_VERSION=${AVD_VERSION}
 
 ARG DOCKER_GID=2020

@@ -26,7 +26,7 @@
       server: 'generic'
       workstation: 'generic'
     # act_veos_internet_access: true
-    act_use_device_models: false
+    act_use_device_models: true
 
     # ContainerLab Config
     clab_name: "{{ basename_act }}"
