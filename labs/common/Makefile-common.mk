@@ -23,20 +23,20 @@ help: ## Display help message for all Makefiles
 ## Setup LAB Steps ##
 
 .PHONY: clab-containerlab-build-deploy
-clab-containerlab-build-deploy: ## build and deploy to containerlab on localhost
+clab-containerlab-build-deploy: ## CLAB - Build and deploy to containerlab on localhost
 	export AUTO_DESTROY="True"; \
     $(MAKE) prod-build; \
 	#export MGMT_STATIC_IP_DISABLED="True"; \
-	$(MAKE) topgen_default containerlab-deploy clab-create-inventory clab-build; \
+	$(MAKE) topgen-default containerlab-deploy clab-create-inventory clab-build; \
 	#export MGMT_STATIC_IP_DISABLED=""; \
-	$(MAKE) topgen_default ## Builds all the steps for the clab 
+	$(MAKE) topgen-default ## Builds all the steps for the clab 
 
 .PHONY: act-config-build-deploy-to-act
-act-config-build-deploy-to-act: ## build and deploy to act all steps 
+act-config-build-deploy-to-act: ## ACT - Build and deploy to act - all steps 
 	export AUTO_DESTROY="True"; \
     $(MAKE) prod-build; \
 	#export MGMT_STATIC_IP_DISABLED="True"; \
-	$(MAKE) topgen_default; \
+	$(MAKE) topgen-default; \
 	#export MGMT_STATIC_IP_DISABLED=""; \
 	$(MAKE) ce_act_topo_create ce_act_labs_create ce_act_labs_deploy ## Builds all the steps for the clab 
 	@echo -e "\n\nWhen it is done wait for the lab to fnish 5-20 minutes depending on the deploy size.";
@@ -52,7 +52,7 @@ act-config-build-deploy-to-act: ## build and deploy to act all steps
 ## Build ##
 
 .PHONY: prod-build
-prod-build: ## Run ansible playbook to build configuration. Single site SITES="sites/site1" make build 
+prod-build: ## PROD - Build configuration. Single site SITES="sites/site1 sites/site2" make build 
 
 	@echo "PROD: Sites - $(SITES)"
 	@for dir in $(SITES); do \
@@ -74,7 +74,7 @@ prod-build: ## Run ansible playbook to build configuration. Single site SITES="s
 
 
 .PHONY: clab-build
-clab-build: ## Run ansible playbook to build configuration. Single site SITES="sites/site1" make build 
+clab-build: ## CLAB - Build configuration. Single site or list: SITES="sites/site1 sites/site2" make build 
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -95,7 +95,7 @@ clab-build: ## Run ansible playbook to build configuration. Single site SITES="s
 	done
 
 .PHONY: act-build
-act-build: ## Run ansible playbook to build configuration. Single site SITES="sites/site1" make build 
+act-build: ## ACT - Build configuration. Single site or list: SITES="sites/site1" make build 
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -118,7 +118,7 @@ act-build: ## Run ansible playbook to build configuration. Single site SITES="si
 ## Deploy CVaaS ##
 
 .PHONY: prod-deploy-cvaas
-prod-deploy-cvaas: ## Deploy Prod AVD config to CVaaS 
+prod-deploy-cvaas: ## PROD - Deploy Prod AVD configs to CVaaS 
 	
 
 	@echo "This Makefile's command: $(SITES)"
@@ -142,7 +142,7 @@ prod-deploy-cvaas: ## Deploy Prod AVD config to CVaaS
 
 
 .PHONY: clab-deploy-cvaas
-clab-deploy-cvaas: ## Deploy cLab AVD config to CVaaS
+clab-deploy-cvaas: ## CLAB - Deploy containerlab AVD config to CVaaS
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -164,7 +164,7 @@ clab-deploy-cvaas: ## Deploy cLab AVD config to CVaaS
 	done
 
 .PHONY: act-deploy-cvaas
-act-deploy-cvaas: ## Deploy act AVD config to CVaaS
+act-deploy-cvaas: ## ACT - Deploy act AVD config to CVaaS
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -189,7 +189,7 @@ act-deploy-cvaas: ## Deploy act AVD config to CVaaS
 ## Deploy CVaaS ##
 
 .PHONY: prod-deploy-cvp
-prod-deploy-cvp: ## Deploy Prod AVD config to CVP
+prod-deploy-cvp: ## PROD - Deploy Prod AVD configs to CVP
 	
 
 	@echo "This Makefile's command: $(SITES)"
@@ -213,7 +213,7 @@ prod-deploy-cvp: ## Deploy Prod AVD config to CVP
 
 
 .PHONY: clab-deploy-cvp
-clab-deploy-cvp: ## Deploy cLab AVD config to CVP
+clab-deploy-cvp: ## CLAB - Deploy containerlab AVD config to CVP
 	
 
 	@echo "This Makefile's command: $(SITES)"
@@ -239,7 +239,7 @@ clab-deploy-cvp: ## Deploy cLab AVD config to CVP
 ## Deploy eAPI ##
 
 .PHONY: prod-deploy-eapi
-prod-deploy-eapi: ## Deploy Prod AVD config via eAPI
+prod-deploy-eapi: ## PROD - Deploy Prod AVD configs via eAPI
 	
 
 	@echo "This Makefile's command: $(SITES)"
@@ -263,7 +263,7 @@ prod-deploy-eapi: ## Deploy Prod AVD config via eAPI
 
 
 .PHONY: clab-deploy-eapi
-clab-deploy-eapi: ## Deploy Lab AVD config via eAPI
+clab-deploy-eapi: ## CLAB - Deploy containerlab AVD config via eAPI
 	
 
 	@echo "This Makefile's command: $(SITES)"
@@ -286,7 +286,7 @@ clab-deploy-eapi: ## Deploy Lab AVD config via eAPI
 	done
 
 .PHONY: act-deploy-eapi
-act-deploy-eapi: ## Deploy Lab AVD config via eAPI
+act-deploy-eapi: ## ACT - Deploy Lab AVD config via eAPI
 	
 
 	@echo "This Makefile's command: $(SITES)"
@@ -313,7 +313,7 @@ act-deploy-eapi: ## Deploy Lab AVD config via eAPI
 ## Register Devices to CVaaS Terminattr##
 
 .PHONY: prod-register-devices-to-cvaas
-prod-register-devices-to-cvaas: ## PROD Run ansible playbook migrate device to cvaas.
+prod-register-devices-to-cvaas: ## PROD - Register PROD device to CVaaS.
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
@@ -334,7 +334,7 @@ prod-register-devices-to-cvaas: ## PROD Run ansible playbook migrate device to c
 	done
 
 .PHONY: clab-register-devices-to-cvaas
-clab-register-devices-to-cvaas: ## Run ansible playbook migrate device to cvaas.
+clab-register-devices-to-cvaas: ## CLAB - Register containerlab devices to cvaas.
 
 
 	@echo "This Makefile's command: $(SITES)"
@@ -358,7 +358,7 @@ clab-register-devices-to-cvaas: ## Run ansible playbook migrate device to cvaas.
 	done
 
 .PHONY: clab-register-devices-to-cvaas-vrf-mgmt
-clab-register-devices-to-cvaas-vrf-mgmt: ## Run ansible playbook register device to cvaas with MGMT vrf.
+clab-register-devices-to-cvaas-vrf-mgmt: ## CLAB - Register containerlab devices to cvaas with MGMT vrf.
 
 
 	@echo "This Makefile's command: $(SITES)"
@@ -384,7 +384,7 @@ clab-register-devices-to-cvaas-vrf-mgmt: ## Run ansible playbook register device
 
 
 .PHONY: act-register-devices-to-cvaas
-act-register-devices-to-cvaas: ## Run ansible playbook migrate device to cvaas.
+act-register-devices-to-cvaas: ## ACT - Register devices to cvaas.
 
 
 	@echo "This Makefile's command: $(SITES)"
@@ -408,7 +408,7 @@ act-register-devices-to-cvaas: ## Run ansible playbook migrate device to cvaas.
 	done
 
 .PHONY: act-register-devices-to-cvaas-mgmt
-act-register-devices-to-cvaas-mgmt: ## Run ansible playbook migrate device to cvaas vrf MGMT.
+act-register-devices-to-cvaas-mgmt: ## ACT - Register devices to CVaaS vrf MGMT and interface101.
 
 
 	@echo "This Makefile's command: $(SITES)"
@@ -434,7 +434,7 @@ act-register-devices-to-cvaas-mgmt: ## Run ansible playbook migrate device to cv
 	done
 
 .PHONY: act-tools-server-setup
-act-tools-server-setup: ## Run ansible playbook migrate device to cvaas.
+act-tools-server-setup: ## ACT - Setup tools server with needed apps.
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
@@ -450,7 +450,7 @@ act-tools-server-setup: ## Run ansible playbook migrate device to cvaas.
 	done
 
 .PHONY: act-internet-server-setup
-act-internet-server-setup: ## Run tools internet setup
+act-internet-server-setup: ## ACT - Run setup for internet servers
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
@@ -466,7 +466,7 @@ act-internet-server-setup: ## Run tools internet setup
 	done
 
 .PHONY: act-connections
-act-connections: ## Run ansible playbook to build config for ACT connections.
+act-connections: ## ACT - Build config for ACT custom connections.
 	@echo "This Makefile's command: $(SITES)"
 	@set -a; \
 	source $(ENV_FILE); \
@@ -478,7 +478,7 @@ act-connections: ## Run ansible playbook to build config for ACT connections.
 	$(ANSIBLE_ARGS) ;
 
 .PHONY: act-connections-ping
-act-connections-ping: ## Run ansible playbook to ping act devices.
+act-connections-ping: ## ACT - Ping act devices.
 	@echo "This Makefile's command: $(SITES)"
 	@set -a; \
 	source $(ENV_FILE); \
@@ -492,7 +492,7 @@ act-connections-ping: ## Run ansible playbook to ping act devices.
 	$(ANSIBLE_ARGS) ;
 
 .PHONY: act-connections-deploy
-act-connections-deploy: ## Run ansible playbook to deploy ACT connections on devices.
+act-connections-deploy: ## ACT - Deploy ACT custom connections on running devices.
 	@echo "This Makefile's command: $(SITES)"
 	@set -a; \
 	source $(ENV_FILE); \
@@ -503,35 +503,35 @@ act-connections-deploy: ## Run ansible playbook to deploy ACT connections on dev
 	--diff \
 	$(ANSIBLE_ARGS) ;
 
-.PHONY: test-site1-act-connections
-test-site1-act-connections: ## Run ansible playbook to connect act devices.
-	@echo "This Makefile's command: $(SITES)"
-	@set -a; \
-	source $(ENV_FILE); \
-	ANSIBLE_TARGET_HOSTS="ACT_CONNECTIONS_SITE1"; \
-	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "sites/site1/inventory-act.yml" \
-	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
-	-e "act_build=true" \
-	-e "act_gre_start_key=\"70000\"" \
-	--diff \
-	-vvv \
-	$(ANSIBLE_ARGS) ;
+# .PHONY: test-site1-act-connections
+# test-site1-act-connections: ## Run ansible playbook to connect act devices.
+# 	@echo "This Makefile's command: $(SITES)"
+# 	@set -a; \
+# 	source $(ENV_FILE); \
+# 	ANSIBLE_TARGET_HOSTS="ACT_CONNECTIONS_SITE1"; \
+# 	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "sites/site1/inventory-act.yml" \
+# 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+# 	-e "act_build=true" \
+# 	-e "act_gre_start_key=\"70000\"" \
+# 	--diff \
+# 	-vvv \
+# 	$(ANSIBLE_ARGS) ;
 
-.PHONY: test-site1-act-connections-run
-test-site1-act-connections-run: ## Run ansible playbook to connect act devices.
-	@echo "This Makefile's command: $(SITES)"
-	@set -a; \
-	source $(ENV_FILE); \
-	ANSIBLE_TARGET_HOSTS="ACT_CONNECTIONS_SITE1"; \
-	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "sites/site1/inventory-act.yml" \
-	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
-	-e "act_deploy=true" \
-	--diff \
-	$(ANSIBLE_ARGS) ;
-## Validate device states ##
+# .PHONY: test-site1-act-connections-run
+# test-site1-act-connections-run: ## Run ansible playbook to connect act devices.
+# 	@echo "This Makefile's command: $(SITES)"
+# 	@set -a; \
+# 	source $(ENV_FILE); \
+# 	ANSIBLE_TARGET_HOSTS="ACT_CONNECTIONS_SITE1"; \
+# 	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "sites/site1/inventory-act.yml" \
+# 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+# 	-e "act_deploy=true" \
+# 	--diff \
+# 	$(ANSIBLE_ARGS) ;
+# ## Validate device states ##
 
 .PHONY: prod-validate
-prod-validate: ## Validate network state
+prod-validate: ## PROD - Validate network state
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
@@ -550,7 +550,7 @@ prod-validate: ## Validate network state
 	done
 
 .PHONY: clab-validate
-clab-validate: ## Validate network state
+clab-validate: ## CLAB - Validate containerlab network state
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
@@ -571,7 +571,7 @@ clab-validate: ## Validate network state
 ## Ping Devices ##
 
 .PHONY: prod-ping
-prod-ping: ## Validate network state
+prod-ping: ## PROD - Ping network devices
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
@@ -590,7 +590,7 @@ prod-ping: ## Validate network state
 	done
 
 .PHONY: clab-ping
-clab-ping: ## Validate network state
+clab-ping: ## CLAB - Ping containerlab network state
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
@@ -610,8 +610,8 @@ clab-ping: ## Validate network state
 
 ## Topology generations for act and clab  ##
 
-.PHONY: topgen_default
-topgen_default: ## Run ansible playbook to build EVPN configuration.
+.PHONY: topgen-default
+topgen-default: ## TOPGEN - act_topgen build topology for containerlab and CE ACT
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -646,8 +646,8 @@ topgen_default: ## Run ansible playbook to build EVPN configuration.
 	done
 
 
-.PHONY: topgen_avd
-topgen_avd: ## Use the AVD generated startup configs on the container.
+.PHONY: topgen-avd
+topgen-avd: ## TOPGEN - act_topgen build topology for containerlab and CE ACT attaching avd config to startup.
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -670,34 +670,34 @@ topgen_avd: ## Use the AVD generated startup configs on the container.
 		fi; \
 	done
 
-.PHONY: topgen_avd2
-topgen_avd2: ## Use the AVD generated startup configs on the container.
+# .PHONY: topgen-avd2
+# topgen-avd2: ## TOPGEN - Use the AVD generated startup configs on the container.
 
-	@echo "This Makefile's command: $(SITES) : $(COMMON_PATH)";
-	@for dir in $(SITES); do \
-		if [ -d "$$dir" ]; then \
-			set -a; \
-			source "$(HOME_DIR)/$(ENV_FILE)"; \
-			echo "--- Entering $$dir ---"; \
-			ANSIBLE_TARGET_HOSTS=$$(bash $(COMMON_PATH)/name-format.sh $$dir $$FABRIC_NAME_UPPER $$FABRIC_NAME;); \
-			echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
-			\
-			ansible-playbook $(COMMON_PATH)/playbooks/act_topgen.yml -i "$$dir/inventory.yml" \
-			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
-			-e "basename_act=$$PROJECT_NAME-$$TARGET_SITE_RAW" \
-			-e "clab_name=$$PROJECT_NAME-$$TARGET_SITE_RAW" \
-			$(ANSIBLE_ARGS) ; \
-		else \
-			echo "Warning: Directory '$$dir' not found. Skipping."; \
-		fi; \
-	done
+# 	@echo "This Makefile's command: $(SITES) : $(COMMON_PATH)";
+# 	@for dir in $(SITES); do \
+# 		if [ -d "$$dir" ]; then \
+# 			set -a; \
+# 			source "$(HOME_DIR)/$(ENV_FILE)"; \
+# 			echo "--- Entering $$dir ---"; \
+# 			ANSIBLE_TARGET_HOSTS=$$(bash $(COMMON_PATH)/name-format.sh $$dir $$FABRIC_NAME_UPPER $$FABRIC_NAME;); \
+# 			echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+# 			\
+# 			ansible-playbook $(COMMON_PATH)/playbooks/act_topgen.yml -i "$$dir/inventory.yml" \
+# 			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+# 			-e "basename_act=$$PROJECT_NAME-$$TARGET_SITE_RAW" \
+# 			-e "clab_name=$$PROJECT_NAME-$$TARGET_SITE_RAW" \
+# 			$(ANSIBLE_ARGS) ; \
+# 		else \
+# 			echo "Warning: Directory '$$dir' not found. Skipping."; \
+# 		fi; \
+# 	done
 
 
 # ContianerLab #######################
 
 
 .PHONY: containerlab-deploy
-containerlab-deploy: ## Deploy containerlab ceos locally
+containerlab-deploy: ## CONTAINERLAB - Deploy containerlab ceos locally
 
 	@echo "This Makefile's command: $(SITES)"
 	-@for dir in $(SITES); do \
@@ -719,7 +719,7 @@ containerlab-deploy: ## Deploy containerlab ceos locally
 	done
 
 .PHONY: containerlab-destroy
-containerlab-destroy: ## Destroy containerlab ceos locally
+containerlab-destroy: ## CONTAINERLAB - Destroy containerlab ceos locally
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -735,7 +735,7 @@ containerlab-destroy: ## Destroy containerlab ceos locally
 	done
 
 .PHONY: containerlab-get-image
-containerlab-get-image: ## Download and install cEOSarm image to docker
+containerlab-get-image: ## CONTAINERLAB - Download and install cEOSarm image to docker(needs arista.com profile key)
 	@set -a; \
 	source $(ENV_FILE); \
 	mkdir ceos_images; \
@@ -751,7 +751,7 @@ containerlab-get-image: ## Download and install cEOSarm image to docker
 
 # ACT_CLI commands
 .PHONY: ce_act_topo_create
-ce_act_topo_create: ## Create Act Toploogy
+ce_act_topo_create: ## CE_ACT - Create Act Toploogy
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -774,7 +774,7 @@ ce_act_topo_create: ## Create Act Toploogy
 	done
 
 .PHONY: ce_act_topo_update
-ce_act_topo_update: ## Update Act Toploogy
+ce_act_topo_update: ## CE_ACT - Update Act Toploogy
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -794,7 +794,7 @@ ce_act_topo_update: ## Update Act Toploogy
 	done
 
 .PHONY: ce_act_labs_create
-ce_act_labs_create: ## Create Labs Act Lab
+ce_act_labs_create: ## CE_ACT - Create ACT Lab
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -815,7 +815,7 @@ ce_act_labs_create: ## Create Labs Act Lab
 	done
 
 .PHONY: ce_act_labs_deploy
-ce_act_labs_deploy: ## Deploy Lab Act 
+ce_act_labs_deploy: ## CE_ACT - Deploy ACT Lab 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -834,7 +834,7 @@ ce_act_labs_deploy: ## Deploy Lab Act
 	done
 
 .PHONY: ce_act_labs_start
-ce_act_labs_start: ## Start Act Toploogy
+ce_act_labs_start: ## CE_ACT - Start ACT Toploogy
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -853,7 +853,7 @@ ce_act_labs_start: ## Start Act Toploogy
 	done
 
 .PHONY: ce_act_labs_stop
-ce_act_labs_stop: ## Stop Act Toploogy
+ce_act_labs_stop: ## CE_ACT - Stop ACT Toploogy
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -872,7 +872,7 @@ ce_act_labs_stop: ## Stop Act Toploogy
 	done
 
 .PHONY: ce_act_topo_read
-ce_act_topo_read: ## Read Act Toploogy
+ce_act_topo_read: ## CE_ACT - Read ACT Toploogy
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -891,7 +891,7 @@ ce_act_topo_read: ## Read Act Toploogy
 	done
 
 .PHONY: ce_act_labs_read
-ce_act_labs_read: ## Read Act Lab
+ce_act_labs_read: ## CE_ACT - Read ACT Lab
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -911,12 +911,12 @@ ce_act_labs_read: ## Read Act Lab
 
 
 .PHONY: act-inventory-process
-act-inventory-process: ## Get inventory file from ce act api and make the custom inventory file
+act-inventory-process: ## ACT - Get inventory file from CE ACT API and make the custom inventory file
 	@echo "This Makefile's command: $(SITES)"
 	$(MAKE) ce_act_tools_get_yaml act-create-inventory
 
 .PHONY: ce_act_tools_get_yaml
-ce_act_tools_get_yaml: ## update inventory file from ce act api
+ce_act_tools_get_yaml: ## CE_ACT - Download ACT Inventory from CE ACT API
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -936,7 +936,7 @@ ce_act_tools_get_yaml: ## update inventory file from ce act api
 	done
 
 .PHONY: act-create-inventory
-act-create-inventory: ## create act inventory based on real inventory
+act-create-inventory: ## ACT - Create ACT inventory based on PROD inventory
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -964,7 +964,7 @@ act-create-inventory: ## create act inventory based on real inventory
 	done
 
 .PHONY: clab-create-inventory
-clab-create-inventory: ## create clab inventory based on real inventory
+clab-create-inventory: ## CLAB - Create containerlab inventory based on PROD inventory
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -993,7 +993,7 @@ clab-create-inventory: ## create clab inventory based on real inventory
 
 
 .PHONY: ce_act_devices_running
-ce_act_devices_running: ## count the number of act devices running
+ce_act_devices_running: ## CE_ACT - Count the number of ACT devices running
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -1016,8 +1016,8 @@ ce_act_devices_running: ## count the number of act devices running
 
 ## Mermaid ##
 
-.PHONY: mermaid_cli_install
-mermaid-cli-install: ## Install docker Mermaid CLI
+.PHONY: mermaid-cli-install
+mermaid-cli-install: ## MERMAID - Install docker Mermaid CLI
 	@if docker image inspect minlag/mermaid-cli:latest > /dev/null 2>&1; then \
 		echo "Image minlag/mermaid-cli is installed."; \
 	else \
@@ -1025,8 +1025,8 @@ mermaid-cli-install: ## Install docker Mermaid CLI
 		docker pull minlag/mermaid-cli:latest; \
 	fi
 
-.PHONY: mermaid_generate_diagram
-mermaid_generate_diagram: ## Generate Mermaid diagram
+.PHONY: mermaid-generate-diagram
+mermaid-generate-diagram: ## MERMAID - Generate Mermaid diagram
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1051,8 +1051,8 @@ mermaid_generate_diagram: ## Generate Mermaid diagram
 		fi; \
 	done
 
-.PHONY: mermaid_docker_clean
-mermaid_docker_clean: ## Clean all docker mermaid cli containers
+.PHONY: mermaid-docker-clean
+mermaid-docker-clean: ## MERMAID - Clean all docker mermaid cli containers
 	@CONTAINERS=$$(docker ps -a --filter "ancestor=minlag/mermaid-cli" --format "{{.ID}}"); \
 	if [ -n "$$CONTAINERS" ]; then \
 		echo "Stopping containers: $$CONTAINERS"; \
@@ -1064,8 +1064,8 @@ mermaid_docker_clean: ## Clean all docker mermaid cli containers
 	fi
 
 
-.PHONY: purge-site-configs
-purge-site-configs: ## Remvoe all the sites configs except inventory.yml and group_vars
+.PHONY: util-purge-site-configs
+util-purge-site-configs: ## UTILS - Remove all the sites configs except inventory.yml and group_vars and custom connections
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -1083,13 +1083,13 @@ purge-site-configs: ## Remvoe all the sites configs except inventory.yml and gro
 	done
 
 .PHONY: act-wan-inventory-merge
-act-wan-inventory-merge: ## Merge act wan connecitons files
+act-wan-inventory-merge: ## ACT - Merge all ACT inventory sites connecitons files into wan folder
 
 	@echo "This Makefile's command: $(SITES)"
 	@python3 $(COMMON_PATH)/scripts/inventory_merge
 
 .PHONY: act-wan-build-merge
-act-wan-build-merge: ## Merge act wan connecitons files
+act-wan-build-merge: ## ACT - Connecitons build and merge files
 
 	@echo "This Makefile's command: $(SITES)"
 	@python3 $(COMMON_PATH)/scripts/act_build_merge
@@ -1098,7 +1098,7 @@ act-wan-build-merge: ## Merge act wan connecitons files
 
 
 .PHONY: studios-interface-input-get-lab
-studios-interface-input-get-lab: ## Get Studios input (export) in for Campus fabric in YAML file
+studios-interface-input-get-lab: ## STUDIOS - Get Studios input (export) in for Campus fabric in YAML file
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1123,7 +1123,7 @@ studios-interface-input-get-lab: ## Get Studios input (export) in for Campus fab
 	done
 
 .PHONY: studios-build-quick-actions-lab
-studios-build-quick-actions-lab: ## Build quick actions to lab using tsv
+studios-build-quick-actions-lab: ## STUDIOS - Build quick actions to lab using tsv
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1148,7 +1148,7 @@ studios-build-quick-actions-lab: ## Build quick actions to lab using tsv
 	done
 
 .PHONY: studios-interface-input-set-lab
-studios-interface-input-set-lab: ## Set Studios inputs (import) for Campus fabric based on YAML file
+studios-interface-input-set-lab: ## STUDIOS - Set Studios inputs (import) for Campus fabric based on YAML file
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1172,3 +1172,7 @@ studios-interface-input-set-lab: ## Set Studios inputs (import) for Campus fabri
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
 		fi; \
 	done
+
+.PHONY: studios-interfaces-tsv-update
+studios-interfaces-tsv-update: ## STUDIOS - Build and update using tsv and make workspace.
+	$(MAKE) studios-interface-input-get-lab studios-build-quick-actions-lab studios-interface-input-set-lab
