@@ -47,11 +47,6 @@
         dest: "./cvaas-token.tok"
         mode: u=rw,g=r,o=r
 
-# - name: Import Global Vars
-#   ansible.builtin.include_vars: "{{ item }}"
-#   with_items:
-#     - "../global_vars/global_dc_vars.yml"
-
 - name: Onboard ContainerLab devices to CVaaS
   hosts: "{{ target_hosts | default('FABRIC') }}" # arista_ceos # Change to your value from inventory file
   gather_facts: false
@@ -69,17 +64,6 @@
 
   tasks:
 
-    # - name: Import Global Vars
-    #   ansible.builtin.include_vars: "{{ item }}"
-    #   with_items:
-    #     - "../global_vars/global_dc_vars.yml"
-
-    # - name: Debug - Show ecdrsa file
-    #   tags: 
-    #     - service_user
-    #   ansible.builtin.debug:
-    #     msg: "ansible_user: {{ ansible_user }} - ansible_pass: {{ ansible_password }}"
-    #   # when: ansible_verbosity >= 1
     - name: Copy onboarding token and start the TerminAttr daemon
       tags: [onboard]
       # when: "'arista_ceos' in groups"
