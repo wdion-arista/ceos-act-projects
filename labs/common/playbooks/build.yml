@@ -4,14 +4,23 @@
   connection: local
   gather_facts: false
   vars:
-    global_vars_on: "True"
+    global_vars_on: "{{ lookup('env', 'GLOBAL_VARS_ON')  | default('False') | bool }}"
+    env_lookup_result: "{{ lookup('env', 'GLOBAL_VARS_FILE') }}"
+
+    global_vars_file: >-
+      {{ (inventory_dir ~ '/../../' ~ env_lookup_result) if env_lookup_result
+          else (playbook_dir ~ '/../global_vars/global_dc_vars.yml') }}
+
   tasks:
+    - name: Print the test variable from global_vars
+      ansible.builtin.debug:
+        msg: "GB_VAR: {{ global_vars_on }} -  {{ env_lookup_result }}"
 
     - name: Import Global Vars
       ansible.builtin.include_vars: "{{ item }}"
       with_items:
-        - "../global_vars/global_dc_vars.yml"
-      when: global_vars_on == "True"
+        - "{{ global_vars_file }}"
+      when: global_vars_on
 
     - name: Generate intended variables
       ansible.builtin.import_role:

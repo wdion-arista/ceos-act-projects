@@ -58,6 +58,8 @@ prod-build: ## PROD - Build configuration. Single site SITES="sites/site1 sites/
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
 			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
 			TARGET_SITE_RAW=$$(basename "$$dir"); \
 			FABRIC=$$(bash $(COMMON_PATH)/name-format.sh $$dir $$FABRIC_NAME_UPPER $$FABRIC_NAME;); \
 			ANSIBLE_TARGET_HOSTS="PROD"; \
@@ -65,7 +67,6 @@ prod-build: ## PROD - Build configuration. Single site SITES="sites/site1 sites/
 			ansible-playbook $(COMMON_PATH)/playbooks/build.yml -i "$$dir/inventory.yml" \
 			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 			-e "fabric_name=$$FABRIC" \
-			-e "global_vars_on=True" \
 			$(ANSIBLE_ARGS); \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
@@ -80,6 +81,8 @@ clab-build: ## CLAB - Build configuration. Single site or list: SITES="sites/sit
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
 			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
 			TARGET_SITE_RAW=$$(basename "$$dir"); \
 			FABRIC=$$(bash $(COMMON_PATH)/name-format.sh $$dir $$FABRIC_NAME_UPPER $$FABRIC_NAME;); \
 			ANSIBLE_TARGET_HOSTS="CLAB"; \
@@ -87,7 +90,6 @@ clab-build: ## CLAB - Build configuration. Single site or list: SITES="sites/sit
 			ansible-playbook $(COMMON_PATH)/playbooks/build.yml -i "$$dir/inventory-containerlab.yml" \
 			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 			-e "fabric_name=$$FABRIC" \
-			-e "global_vars_on=False" \
 			$(ANSIBLE_ARGS) ; \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
@@ -101,14 +103,15 @@ act-build: ## ACT - Build configuration. Single site or list: SITES="sites/site1
 	@for dir in $(SITES); do \
 		if [ -d "$$dir" ]; then \
 			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
 			TARGET_SITE_RAW=$$(basename "$$dir"); \
 			FABRIC=$$(bash $(COMMON_PATH)/name-format.sh $$dir $$FABRIC_NAME_UPPER $$FABRIC_NAME;); \
 			ANSIBLE_TARGET_HOSTS="ACT"; \
-			echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+			echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS Hmm $$GLOBAL_VARS_FILE"; \
 			ansible-playbook $(COMMON_PATH)/playbooks/build.yml -i "$$dir/inventory-act.yml" \
 			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 			-e "fabric_name=$$FABRIC" \
-			-e "global_vars_on=True" \
 			$(ANSIBLE_ARGS) ; \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
@@ -425,8 +428,8 @@ act-register-devices-to-cvaas-mgmt: ## ACT - Register devices to CVaaS vrf MGMT 
 			ansible-playbook $(COMMON_PATH)/playbooks/register-to-cv-tenant.yml -i "$$dir/inventory-act.yml" \
 			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 			-e "root_dir={{ inventory_dir }}/act" \
-			-e "terminattr_vrf=MGMT" \
-			-e "terminattr_interface=Vlan101" \
+			-e "terminattr_vrf=$$EOS_MGMT_VRF" \
+			-e "terminattr_interface=$$EOS_MGMT_VLAN" \
 			$(ANSIBLE_ARGS) ; \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
@@ -470,7 +473,7 @@ act-connections: ## ACT - Build config for ACT custom connections.
 	@echo "This Makefile's command: $(SITES)"
 	@set -a; \
 	source $(ENV_FILE); \
-	ANSIBLE_TARGET_HOSTS="WAN"; \
+	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
 	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/merged_inventory.yml" \
 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 	-e "act_build=true" \
@@ -482,7 +485,7 @@ act-connections-ping: ## ACT - Ping act devices.
 	@echo "This Makefile's command: $(SITES)"
 	@set -a; \
 	source $(ENV_FILE); \
-	ANSIBLE_TARGET_HOSTS="WAN"; \
+	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
 	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/merged_inventory.yml" \
 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 	-e "act_deploy=true" \
@@ -496,7 +499,7 @@ act-connections-deploy: ## ACT - Deploy ACT custom connections on running device
 	@echo "This Makefile's command: $(SITES)"
 	@set -a; \
 	source $(ENV_FILE); \
-	ANSIBLE_TARGET_HOSTS="WAN"; \
+	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
 	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/merged_inventory.yml" \
 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 	-e "act_deploy=true" \
@@ -669,29 +672,6 @@ topgen-avd: ## TOPGEN - act_topgen build topology for containerlab and CE ACT at
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
 		fi; \
 	done
-
-# .PHONY: topgen-avd2
-# topgen-avd2: ## TOPGEN - Use the AVD generated startup configs on the container.
-
-# 	@echo "This Makefile's command: $(SITES) : $(COMMON_PATH)";
-# 	@for dir in $(SITES); do \
-# 		if [ -d "$$dir" ]; then \
-# 			set -a; \
-# 			source "$(HOME_DIR)/$(ENV_FILE)"; \
-# 			echo "--- Entering $$dir ---"; \
-# 			ANSIBLE_TARGET_HOSTS=$$(bash $(COMMON_PATH)/name-format.sh $$dir $$FABRIC_NAME_UPPER $$FABRIC_NAME;); \
-# 			echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
-# 			\
-# 			ansible-playbook $(COMMON_PATH)/playbooks/act_topgen.yml -i "$$dir/inventory.yml" \
-# 			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
-# 			-e "basename_act=$$PROJECT_NAME-$$TARGET_SITE_RAW" \
-# 			-e "clab_name=$$PROJECT_NAME-$$TARGET_SITE_RAW" \
-# 			$(ANSIBLE_ARGS) ; \
-# 		else \
-# 			echo "Warning: Directory '$$dir' not found. Skipping."; \
-# 		fi; \
-# 	done
-
 
 # ContianerLab #######################
 
@@ -963,6 +943,35 @@ act-create-inventory: ## ACT - Create ACT inventory based on PROD inventory
 		fi; \
 	done
 
+.PHONY: act-create-inventory2
+act-create-inventory2: ## ACT - Create ACT inventory based on PROD inventory
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+# 			TARGET_SITE=$$(echo "$$TARGET_SITE_RAW" | tr '[:lower:]' '[:upper:]'); \
+# 			FABRIC_BASENAME="_FABRIC"; \
+# 			ANSIBLE_TARGET_HOSTS="$$TARGET_SITE$$FABRIC_BASENAME"; \
+			ANSIBLE_TARGET_HOSTS=$$(bash $(COMMON_PATH)/name-format.sh $$dir $$FABRIC_NAME_UPPER $$FABRIC_NAME;); \
+			echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+			python3 $(COMMON_PATH)/scripts/update_clab_act_inventory2 --inv_file "$$dir/inventory.yml" \
+			--fabric_name "$$ANSIBLE_TARGET_HOSTS" \
+			--site "$$TARGET_SITE_RAW" \
+			--env_name "PROD" \
+			--act "temp/$${PROJECT_NAME}-$${TARGET_SITE_RAW}-inventory.yml" \
+			$(ANSIBLE_ARGS) ; \
+			echo "python3 $(COMMON_PATH)/scripts/update_clab_act_inventory2 --inv_file \"$$dir/inventory.yml\" --fabric_name \"$$ANSIBLE_TARGET_HOSTS\" --site \"$$TARGET_SITE_RAW\" --env_name \"PROD\" --act \"temp/$${PROJECT_NAME}-$${TARGET_SITE_RAW}-inventory.yml\""; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+
 .PHONY: clab-create-inventory
 clab-create-inventory: ## CLAB - Create containerlab inventory based on PROD inventory
 
@@ -1147,6 +1156,32 @@ studios-build-quick-actions-lab: ## STUDIOS - Build quick actions to lab using t
 		fi; \
 	done
 
+.PHONY: studios-build-quick-actions-lab2
+studios-build-quick-actions-lab2: ## STUDIOS - BETA Build quick actions to lab using tsv
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVAAS_SERVER_LAB"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_build_ports_for_quick_actions2.py \
+			--server "$$CVAAS_SERVER_LAB" \
+			--token "$$CVAAS_TOKEN_LAB" \
+			--file-interface-tsv "$$dir/studios/studio-campus-ports.tsv" \
+			--file-interface-studio-inputs "$$dir/studios/lab/studio-campus-access-interfaces-inputs.yaml" \
+			--file-interface-studio-output "$$dir/studios/lab/studio-campus-access-interfaces-inputs-new.yaml" \
+			--avd-intended-directory "$$dir/intended/structured_configs" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
 .PHONY: studios-interface-input-set-lab
 studios-interface-input-set-lab: ## STUDIOS - Set Studios inputs (import) for Campus fabric based on YAML file
 
@@ -1176,3 +1211,105 @@ studios-interface-input-set-lab: ## STUDIOS - Set Studios inputs (import) for Ca
 .PHONY: studios-interfaces-tsv-update
 studios-interfaces-tsv-update: ## STUDIOS - Build and update using tsv and make workspace.
 	$(MAKE) studios-interface-input-get-lab studios-build-quick-actions-lab studios-interface-input-set-lab
+
+
+.PHONY: studios-interface-input-get-prod
+studios-interface-input-get-prod: ## STUDIOS - Get Studios input (export) in for Campus fabric in YAML file
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/prod"; \
+			echo "$$CVAAS_SERVER_PROD"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_update.py \
+			--server "$$CVAAS_SERVER_PROD" \
+			--token "$$CVAAS_TOKEN_PROD" \
+			--operation get \
+			--studio-id studio-campus-access-interfaces \
+			--output-folder "$$dir/studios/prod" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: studios-build-quick-actions-prod
+studios-build-quick-actions-prod: ## STUDIOS - Build quick actions to lab using tsv
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/prod"; \
+			echo "$$CVAAS_SERVER_PROD"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_build_ports_for_quick_actions.py \
+			--server "$$CVAAS_SERVER_PROD" \
+			--token "$$CVAAS_TOKEN_PROD" \
+			--file-interface-tsv "$$dir/studios/studio-campus-ports.tsv" \
+			--file-interface-studio-inputs "$$dir/studios/prod/studio-campus-access-interfaces-inputs.yaml" \
+			--file-interface-studio-output "$$dir/studios/prod/studio-campus-access-interfaces-inputs-new.yaml" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+
+.PHONY: studios-interface-input-set-prod
+studios-interface-input-set-prod: ## STUDIOS - Set Studios inputs (import) for Campus fabric based on YAML file
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/prod"; \
+			echo "$$CVAAS_SERVER_LAB"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_update.py \
+			--server "$$CVAAS_SERVER_PROD" \
+			--token "$$CVAAS_TOKEN_PROD" \
+			--operation set \
+			--studio-id studio-campus-access-interfaces \
+			--yaml-file "$$dir/studios/prod/studio-campus-access-interfaces-inputs-new.yaml" \
+			--build-only=True \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: studios-interfaces-tsv-update-prod
+studios-interfaces-tsv-update-prod: ## STUDIOS - Build and update using tsv and make workspace.
+	$(MAKE) studios-interface-input-get-prod studios-build-quick-actions-prod studios-interface-input-set-prod
+
+
+# WAN Stitching
+
+.PHONY: act-build-wan
+act-build-wan: ## ACT - BETA Build WAN configuration. Single site or list: SITES="sites/site1" make build 
+
+	@echo "This Makefile's command: $(SITES)"
+	TARGET_SITE_RAW=$$(basename "wan"); \
+	dir="wan"; \
+	FABRIC="ACT_CUSTOM_CONNECTIONS"; \
+	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
+	echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+	ansible-playbook $(COMMON_PATH)/playbooks/build.yml -i "$$dir/merged_inventory.yml" \
+	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+	-e "fabric_name=$$FABRIC" \
+	-e "global_vars_on=False" \
+	-vvv \
+	$(ANSIBLE_ARGS) ; \
+	

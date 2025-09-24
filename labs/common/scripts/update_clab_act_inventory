@@ -303,8 +303,10 @@ def update_ansible_inventory_from_internal_ips(source_inventory_path, new_clab_y
 
                                 if hostname in internal_ip_map:
                                     old_ip = host_vars.get('ansible_host', 'N/A')
-                                    new_ip = internal_ip_map[hostname]
+                                    new_ip = internal_ip_map[hostname]['internal_ip']
+                                    new_cloud_ip = internal_ip_map[hostname]['cloud_ip']
                                     host_vars['ansible_host'] = new_ip
+                                    host_vars['cloud_ip'] = new_cloud_ip
                                     host_vars.pop('clab_mgmt_ip',None)
                                     host_vars.pop('act_mgmt_ip',None)
                                     if old_ip == 'N/A':
@@ -338,7 +340,27 @@ def update_ansible_inventory_from_internal_ips(source_inventory_path, new_clab_y
             else:
                 tools_fabric = modified_inventory.get('all', {}).get('children', {})
                 tools_fabric['TOOLS'] = {'children':{'TOOLSSERVER':{'hosts':{'tools-server':{'ansible_hosts':new_ip}}}}}
-            
+        
+        # SERVER IPS:
+
+        servers_list = modified_inventory.get('all', {}).get('children', {}).get('TOOLS', {}).get('children', {}).get('SERVERS', {}).get('hosts', {})
+        if len(servers_list) > 0:
+            print(f'Found {len(servers_list)} servers')
+            for hostname, host_vars in servers_list.items():
+                print(hostname)
+                if hostname in internal_ip_map:
+                    old_ip = host_vars.get('ansible_host', 'N/A')
+                    new_ip = internal_ip_map[hostname]['internal_ip']
+                    new_cloud_ip = internal_ip_map[hostname]['cloud_ip']
+                    host_vars['ansible_host'] = new_ip
+                    host_vars['cloud_ip'] = new_cloud_ip
+                    host_vars.pop('clab_mgmt_ip',None)
+                    host_vars.pop('act_mgmt_ip',None)
+                    if old_ip == 'N/A':
+                        print(f"      Added {hostname}: {new_ip}")
+                    else:
+                        print(f"      Updated {hostname}: {old_ip} -> {new_ip}")
+        # Save new file
         with open(output_inventory_path, 'w') as f:
             yaml.dump(modified_inventory, f)
         print(f"Modified inventory saved to: {output_inventory_path}")
