@@ -9,6 +9,9 @@ secrets.yml
 cvaas-token.tok
 .vscode/
 *.log
-act/
 .ansible
-clab/
+sites/*/studios/lab/
+sites/*/studios/prod/
+ca.key
+ca.pem
+.config-repo-ar/
