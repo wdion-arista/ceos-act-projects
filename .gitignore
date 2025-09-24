@@ -19,5 +19,4 @@ secrets.yml
 act_connections/
 act_topgen/
 cvaas-token.tok
-labs/*
-!labs/common
+.gitmodules
