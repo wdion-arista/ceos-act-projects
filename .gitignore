@@ -20,3 +20,5 @@ act_connections/
 act_topgen/
 cvaas-token.tok
 .gitmodules
+lab/*
+
