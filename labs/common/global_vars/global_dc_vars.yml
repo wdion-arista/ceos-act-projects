@@ -28,13 +28,6 @@ local_users:
     role: network-admin
     sha512_password: "{{ ansible_password | password_hash('sha512', salt='arista', rounds=5000) }}"
     ssh_key: "{{ lookup('ansible.builtin.file', lookup('env', 'HOME') + '/.ssh/id_ecdsa.pub') }}"
-
-  # - name: cvpadmin
-  #   privilege: 15
-  #   role: network-admin
-  #   # Password set to "ansible". Same string as the device generates when configuring a username.
-  #   sha512_password: $6$hNPJ7EFOvJgas3zQ$.HncN6qfuBQsZW/reDwSkVi0h9SHarJTmOkotMT7XK7/N958w5zd7IhvGRkY7ekUcrKs6kJRr/85PVIdKSWpH.
-  #   ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJF7OT/UyUNugQBV/6sn/7FPB5glZfb2KzjBmlkxyWdx westley.dion@Westleys-MacBook-Pro-2.local"
   - name: service
     sha512_password: $6$xqN6kvscOiKvO4K0$uMr17y1EGzBOu0e3k7UrTbx5.dHqluAQ0KB5i.Qck6Md5lc0iAx7TGPlXORqzGxZLg.ro6ggy0C/CNdBIH52j.
     shell: /bin/bash
@@ -84,20 +77,15 @@ daemon_terminattr:
         #method: certs
         #key_file: /persist/secure/ssl/terminattr/CVaaS/keys/client.key
         #cert_file: /persist/secure/ssl/terminattr/CVaaS/certs/client.crt
+        # method: certs
+        # key_file: /persist/secure/ssl/terminattr/primary/keys/client.key
+        # cert_file: /persist/secure/ssl/terminattr/primary/certs/client.crt
 
       cvvrf: MGMT
       cvsourceintf: Vlan101
   disable_aaa: true
   smashexcludes: "ale,flexCounter,hardware,kni,pulse,strata"
   ingestexclude: "/Sysdb/cell/1/agent,/Sysdb/cell/2/agent"
-
-
-# Point to Point Links MTU Override for Lab
-p2p_uplinks_mtu: 1500
-
-# # CVP node variables
-# cv_collection: v3
-# execute_tasks: true
 
 
 # DHCP
@@ -125,10 +113,10 @@ aliases: |
   alias ps_show_bess bash ps -ef | grep -i Bess
   alias check_terminattr show agent TerminAttr log | tail 
 
-interface_defaults:
+# interface_defaults:
   # ethernet:
   #   shutdown: true
-  mtu: 1500
+  # mtu: 1500
 
 eos_designs_documentation:
   topology_csv: true
