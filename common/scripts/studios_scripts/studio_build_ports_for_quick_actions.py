@@ -262,7 +262,14 @@ def main(args):
         if found_campus_interface is not None:
             # Update the Port
             keys_to_make_int = {'nativeVlan', 'phoneVlan', 'portChannelId'}
-            switchport_nested_data = nest_hyphenated_keys(switchport,keys_to_make_int)
+            if switchport is not None:
+                try:
+                    switchport_nested_data = nest_hyphenated_keys(switchport,keys_to_make_int)
+                except:
+                    print("Fix your TSV. It should not have a None Key or Value")
+                    print(switchport)
+                    exit()
+
             
             if 'spineAdapterDetails' in found_campus_interface['inputs']:
                 found_campus_interface['inputs']['spineAdapterDetails'] = found_campus_interface['inputs']['spineAdapterDetails'] | switchport_nested_data
