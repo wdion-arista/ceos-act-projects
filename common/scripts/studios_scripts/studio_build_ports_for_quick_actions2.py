@@ -16,7 +16,7 @@ import yaml
 from google.protobuf.json_format import MessageToDict
 import csv
 import pprint
-
+from studio_build_avd_cvaas_port_profiles import *
 
 
 RPC_TIMEOUT = 30  # in seconds
@@ -299,39 +299,38 @@ def main(args):
         # print(structured_config_file)
         # Files exists
         if os.path.exists(structured_config_file):
-            print(switchname['name'])
+            print(f"Switch name: {switchname['name']}")
             avd_structured_config = load_yaml_to_dict(structured_config_file)
-            pprint.pprint(avd_structured_config['port_profiles'])
+            # pprint.pprint(avd_structured_config['port_profiles'])
             for dev_port_profile in avd_structured_config['port_profiles']:
-                print(dev_port_profile['profile'])
+                # print(f"Profile name: {dev_port_profile['profile']}")
                 port_profile_data = find_deviceid_concise2(port_profiles, dev_port_profile['profile'], 'profile', 'profile')
                 if port_profile_data is None:
+                    print(f"Added Profile: {dev_port_profile['profile']}")
                     port_profiles.append(dev_port_profile)
+                else:
+                    print(f"Skipped Profile: {dev_port_profile['profile']}")
 
     print('$$$$$$$$$$#########################\n\n')
-    pprint.pprint(port_profiles)
-    pprint.pprint(studio_input['inputs']['portProfiles'])
+    # pprint.pprint(port_profiles)
+    # pprint.pprint(studio_input['inputs']['portProfiles'])
     portprofiles = studio_input['inputs']['portProfiles']
+    
     for port_profile_cfg in port_profiles:
-        port_profile_index = find_index_concise(portprofiles, port_profile_cfg['profile'], 'profile')
+        port_profile_index = find_index_concise(portprofiles, port_profile_cfg['profile'], 'name')
 
         if port_profile_index is not None:
-            portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            portprofiles[port_profile_index]['description'] = port_profile_cfg['profile'] if port_profile_cfg.get('description') is None else port_profile_cfg['description']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
-            # portprofiles[port_profile_index]['enabled'] = 'No' if port_profile_cfg.get('enabled') is None else port_profile_cfg['enabled']
+            transformed_profiles = transform_data(portprofiles[port_profile_index], avd_port_mapping, BASE_PROFILE_TEMPLATE)
+            # print("FOUND-START")
+            # pprint.pprint(transformed_profiles)
+            # print("FOUND-END")
             
         else:
-            portprofiles.append(port_profile_cfg)
+            transformed_profiles = transform_data(port_profile_cfg, avd_port_mapping, BASE_PROFILE_TEMPLATE)
+            # print("NONE-START")
+            # pprint.pprint(transformed_profiles)
+            # print("NONE-END")
+            portprofiles.append(transformed_profiles)
             
     
     with open(args.file_interface_studio_output, 'w') as yaml_file:
