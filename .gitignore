@@ -22,4 +22,4 @@ cvaas-token.tok
 .gitmodules
 *.code-workspace
 labs/
-
+core

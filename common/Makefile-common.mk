@@ -143,6 +143,28 @@ prod-deploy-cvaas: ## PROD - Deploy Prod AVD configs to CVaaS
 		fi; \
 	done
 
+.PHONY: pre-prod-deploy-cvaas
+pre-prod-deploy-cvaas: ## PROD - Deploy Prod AVD configs to CVaaS 
+	
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		if [ -d "$$dir" ]; then \
+			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			ANSIBLE_TARGET_HOSTS="PROD"; \
+			echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+			export CVAAS_SERVER="$$CVAAS_SERVER_LAB"; \
+			export CVAAS_TOKEN="$$CVAAS_TOKEN_LAB"; \
+			ansible-playbook $(COMMON_PATH)/playbooks/deploy-cvaas.yml -i "$$dir/inventory.yml" \
+			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
 
 .PHONY: clab-deploy-cvaas
 clab-deploy-cvaas: ## CLAB - Deploy containerlab AVD config to CVaaS
@@ -1106,8 +1128,8 @@ act-wan-build-merge: ## ACT - Connecitons build and merge files
 ### Studios
 
 
-.PHONY: studios-interface-input-get-lab
-studios-interface-input-get-lab: ## STUDIOS - Get Studios input (export) in for Campus fabric in YAML file
+.PHONY: lab-studios-interface-input-get
+lab-studios-interface-input-get: ## STUDIOS - Get Studios input (export) in for Campus fabric in YAML file
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1131,8 +1153,8 @@ studios-interface-input-get-lab: ## STUDIOS - Get Studios input (export) in for 
 		fi; \
 	done
 
-.PHONY: studios-build-quick-actions-lab
-studios-build-quick-actions-lab: ## STUDIOS - Build quick actions to lab using tsv
+.PHONY: lab-studios-build-quick-actions
+lab-studios-build-quick-actions: ## STUDIOS - Build quick actions to lab using tsv
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1156,8 +1178,8 @@ studios-build-quick-actions-lab: ## STUDIOS - Build quick actions to lab using t
 		fi; \
 	done
 
-.PHONY: studios-build-quick-actions-lab2
-studios-build-quick-actions-lab2: ## STUDIOS - BETA Build quick actions to lab using tsv
+.PHONY: lab2-studios-build-quick-actions
+lab2-studios-build-quick-actions: ## STUDIOS - BETA Build quick actions to lab using tsv
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1182,8 +1204,8 @@ studios-build-quick-actions-lab2: ## STUDIOS - BETA Build quick actions to lab u
 		fi; \
 	done
 
-.PHONY: studios-interface-input-set-lab
-studios-interface-input-set-lab: ## STUDIOS - Set Studios inputs (import) for Campus fabric based on YAML file
+.PHONY: lab-studios-interface-input-set
+lab-studios-interface-input-set: ## STUDIOS - Set Studios inputs (import) for Campus fabric based on YAML file
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1208,13 +1230,13 @@ studios-interface-input-set-lab: ## STUDIOS - Set Studios inputs (import) for Ca
 		fi; \
 	done
 
-.PHONY: studios-interfaces-tsv-update
-studios-interfaces-tsv-update: ## STUDIOS - Build and update using tsv and make workspace.
-	$(MAKE) studios-interface-input-get-lab studios-build-quick-actions-lab studios-interface-input-set-lab
+.PHONY: lab-studios-interfaces-tsv-update
+lab-studios-interfaces-tsv-update: ## STUDIOS - Build and update using tsv and make workspace.
+	$(MAKE) lab-studios-interface-input-get lab-studios-build-quick-actions lab-studios-interface-input-set
 
-
-.PHONY: studios-interface-input-get-prod
-studios-interface-input-get-prod: ## STUDIOS - Get Studios input (export) in for Campus fabric in YAML file
+# Studios PROD
+.PHONY: prod-studios-interface-input-get
+prod-studios-interface-input-get: ## STUDIOS - Get Studios input (export) in for Campus fabric in YAML file
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1238,8 +1260,8 @@ studios-interface-input-get-prod: ## STUDIOS - Get Studios input (export) in for
 		fi; \
 	done
 
-.PHONY: studios-build-quick-actions-prod
-studios-build-quick-actions-prod: ## STUDIOS - Build quick actions to lab using tsv
+.PHONY: prod-studios-build-quick-actions
+prod-studios-build-quick-actions: ## STUDIOS - Build quick actions to lab using tsv
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1264,8 +1286,8 @@ studios-build-quick-actions-prod: ## STUDIOS - Build quick actions to lab using 
 	done
 
 
-.PHONY: studios-interface-input-set-prod
-studios-interface-input-set-prod: ## STUDIOS - Set Studios inputs (import) for Campus fabric based on YAML file
+.PHONY: prod-studios-interface-input-set
+prod-studios-interface-input-set: ## STUDIOS - Set Studios inputs (import) for Campus fabric based on YAML file
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
@@ -1290,8 +1312,8 @@ studios-interface-input-set-prod: ## STUDIOS - Set Studios inputs (import) for C
 		fi; \
 	done
 
-.PHONY: studios-interfaces-tsv-update-prod
-studios-interfaces-tsv-update-prod: ## STUDIOS - Build and update using tsv and make workspace.
+.PHONY: prod-studios-interfaces-tsv-update
+prod-studios-interfaces-tsv-update: ## STUDIOS - Build and update using tsv and make workspace.
 	$(MAKE) studios-interface-input-get-prod studios-build-quick-actions-prod studios-interface-input-set-prod
 
 
