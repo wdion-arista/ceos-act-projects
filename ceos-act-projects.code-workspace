@@ -4,5 +4,7 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"ansible.python.interpreterPath": "/usr/local/bin/python"
+	}
 }
