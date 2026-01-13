@@ -1,15 +1,16 @@
 {
-  "name": "AVD Containerlab-Docker-Ouside-Docker",
+  "name": "AVD GH Containerlab-Docker-Ouside-Docker",
   // "image": "ghcr.io/srl-labs/containerlab/devcontainer-dood:latest",
-  "image": "containerlab/clab-dood-avd:v1.1.0",
-  "build": { 
-      "dockerfile": "Dockerfile"
-      // "context": ".."
-      // "args":{
-      //     "GITLAB_PAT": "{localEnv:GITLAB_PAT}",
-      //     "GITLAB_USER": "{localEnv:GITLAB_USER}"
-      // }
-  },  
+  "image": "myrepo.local/avd/ceos-act-projects:v1.1.0",
+  // "image": "containerlab/clab-dood-avd:v1.1.0",
+  // "build": { 
+  //     "dockerfile": "Dockerfile"
+  //     // "context": ".."
+  //     // "args":{
+  //     //     "GITLAB_PAT": "{localEnv:GITLAB_PAT}",
+  //     //     "GITLAB_USER": "{localEnv:GITLAB_USER}"
+  //     // }
+  // },  
   "runArgs": [
     "--network=host",
     "--pid=host",
