@@ -1,0 +1,11 @@
+version: '3'
+services:
+  ceos-act-projects:
+    image: myrepo.local/avd/ceos-act-projects:v1.1.0
+    build:
+      context: .
+      # args:
+        # - GITLAB_PAT=${GITLAB_PAT}
+        # - GITLAB_USER=${GITLAB_USER}
+    # env_file:
+    #   .env
