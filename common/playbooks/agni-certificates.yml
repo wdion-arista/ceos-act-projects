@@ -1,0 +1,20 @@
+---
+- name: Arista AGNI Certificate
+  hosts: "{{ target_hosts | default('AGNI_CERTIFICATES') }}"
+  gather_facts: false
+  # ignore_unreachable: true
+
+  tasks:
+
+    - name: Generate Arista AGNI Certificate
+      vars:
+        ansible_user: cvpadmin
+        ansible_password: "{{ lookup('env', 'LABPASSPHRASE') }}"
+        agni_api_keyid: "{{ lookup('env', 'AGNI_keyID') }}" # KEY-ATN570324-3023
+        agni_api_keyvalue: "{{ lookup('env', 'AGNI_keyValue') }}" # 2c310440ae0fcb248bd18ee263140b68
+        agni_api_orgid: "{{ lookup('env', 'AGNI_orgID') }}" # E01976aec-b888-702b-84ed-6362948a34e2
+        agni_api_zoneid: 0
+      ansible.builtin.import_role:
+        # For testing agni-certificates
+        name: agni_certificates/agni-certificates
+        # name: agni-certificates

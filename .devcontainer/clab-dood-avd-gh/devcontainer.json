@@ -1,0 +1,43 @@
+{
+  "name": "AVD Containerlab-Docker-Ouside-Docker",
+  // "image": "ghcr.io/srl-labs/containerlab/devcontainer-dood:latest",
+  "image": "containerlab/clab-dood-avd:v1.1.0",
+  "build": { 
+      "dockerfile": "Dockerfile"
+      // "context": ".."
+      // "args":{
+      //     "GITLAB_PAT": "{localEnv:GITLAB_PAT}",
+      //     "GITLAB_USER": "{localEnv:GITLAB_USER}"
+      // }
+  },  
+  "runArgs": [
+    "--network=host",
+    "--pid=host",
+    "--privileged"
+  ],
+  "mounts": [
+    //"source=/Users,target=/Users,type=bind",
+    //"source=/Users/${localEnv:USER}/.ssh,target=/home/avd/.ssh,type=bind",
+    "type=bind,src=/run/docker/netns,dst=/run/docker/netns",
+    "type=bind,src=/var/lib/docker,dst=/var/lib/docker",
+    "type=bind,src=/lib/modules,dst=/lib/modules"
+  ],
+  "workspaceFolder": "${localWorkspaceFolder}",
+  "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind",
+  // "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  // "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "srl-labs.vscode-containerlab",
+        "samuelcolvin.jinjahtml",
+        "ms-vscode.makefile-tools",
+        "redhat.ansible",
+        "ms-azuretools.vscode-docker",
+        "oderwat.indent-rainbow",
+        "mechatroner.rainbow-csv",
+        "redhat.vscode-yaml"
+      ]
+    }
+  }
+}
