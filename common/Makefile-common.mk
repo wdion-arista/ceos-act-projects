@@ -38,7 +38,10 @@ act-config-build-deploy-to-act: ## ACT - Build and deploy to act - all steps
 	#export MGMT_STATIC_IP_DISABLED="True"; \
 	$(MAKE) topgen-default; \
 	#export MGMT_STATIC_IP_DISABLED=""; \
-	$(MAKE) ce_act_topo_create ce_act_labs_create ce_act_labs_deploy ## Builds all the steps for the clab 
+	$(MAKE) ce_act_topo_create ce_act_labs_create ## Builds all the steps for the ce act lab 
+	@echo "Waiting for 5 seconds for act to create labs..."
+	@sleep 5
+	$(MAKE) ce_act_labs_deploy ## create labs 
 	@echo -e "\n\nWhen it is done wait for the lab to fnish 5-20 minutes depending on the deploy size.";
 	@echo -e "Run the inventory and act build:";
 	@echo -e "make act-inventory-process act-build\n"
@@ -260,6 +263,29 @@ clab-deploy-cvp: ## CLAB - Deploy containerlab AVD config to CVP
 		fi; \
 	done
 
+.PHONY: act-deploy-cvp
+act-deploy-cvp: ## ACT - Deploy containerlab AVD config to CVP
+	
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		if [ -d "$$dir" ]; then \
+			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			ANSIBLE_TARGET_HOSTS="ACT"; \
+			export CVAAS_SERVER="$$CVP_SERVER"; \
+			export CVAAS_TOKEN="$$CVP_TOKEN_LAB"; \
+			ansible-playbook $(COMMON_PATH)/playbooks/deploy-cvp.yml -i "$$dir/inventory-act.yml" \
+			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+			-e "root_dir={{ inventory_dir }}/act" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
 
 ## Deploy eAPI ##
 
@@ -376,6 +402,7 @@ clab-register-devices-to-cvaas: ## CLAB - Register containerlab devices to cvaas
 			ansible-playbook $(COMMON_PATH)/playbooks/register-to-cv-tenant.yml -i "$$dir/inventory-containerlab.yml" \
 			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 			-e "root_dir={{ inventory_dir }}/clab" \
+			-e "terminattr_interface=Management0" \
 			$(ANSIBLE_ARGS) ; \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
@@ -457,6 +484,32 @@ act-register-devices-to-cvaas-mgmt: ## ACT - Register devices to CVaaS vrf MGMT 
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
 		fi; \
 	done
+
+.PHONY: act-register-devices-to-cvp
+act-register-devices-to-cvp: ## ACT - Register devices to cvp vm.
+
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		if [ -d "$$dir" ]; then \
+			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			ANSIBLE_TARGET_HOSTS="ACT"; \
+			echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+			ansible-playbook $(COMMON_PATH)/playbooks/register-to-cvp-tenant.yml -i "$$dir/inventory-act.yml" \
+			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+			-e "root_dir={{ inventory_dir }}/act" \
+			-e "cvp_url=$$CVP_SERVER" \
+			-e "cvp_service_token=$$CVP_TOKEN_LAB" \
+			-e "terminator_server=$$CVP_SERVER_LOCAL" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
 
 .PHONY: act-tools-server-setup
 act-tools-server-setup: ## ACT - Setup tools server with needed apps.
@@ -696,11 +749,17 @@ topgen-avd: ## TOPGEN - act_topgen build topology for containerlab and CE ACT at
 	done
 
 # ContianerLab #######################
-
+.PHONY: setup-bridge
+setup-bridge: ## CONTAINERLAB - Setup Dummy bridge
+	@if ! ip link show br-dummy > /dev/null 2>&1; then \
+		echo "Creating bridge br-dummy..."; \
+		sudo ip link add br-dummy type bridge; \
+		sudo ip link set br-dummy up; \
+	fi
 
 .PHONY: containerlab-deploy
 containerlab-deploy: ## CONTAINERLAB - Deploy containerlab ceos locally
-
+	$(MAKE) setup-bridge
 	@echo "This Makefile's command: $(SITES)"
 	-@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
@@ -719,6 +778,7 @@ containerlab-deploy: ## CONTAINERLAB - Deploy containerlab ceos locally
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
 		fi; \
 	done
+	$(MAKE) clab-fqdn-add-host-file
 
 .PHONY: containerlab-destroy
 containerlab-destroy: ## CONTAINERLAB - Destroy containerlab ceos locally
@@ -740,12 +800,20 @@ containerlab-destroy: ## CONTAINERLAB - Destroy containerlab ceos locally
 containerlab-get-image: ## CONTAINERLAB - Download and install cEOSarm image to docker(needs arista.com profile key)
 	@set -a; \
 	source $(ENV_FILE); \
-	mkdir ceos_images; \
-	cd ceos_images; \
-	ardl get eos --format cEOSarm --version 4.34.1F --import-docker; \
-	cd ..; \
-	rm -fr ceos_images;
-
+	IMAGE_REPO="arista/ceos"; \
+	IMAGE_NAME="$${IMAGE_REPO}:$${CEOS_ARM_IMAGE}"; \
+	if docker image inspect "$$IMAGE_NAME" >/dev/null 2>&1; then \
+		# If the command succeeds (exit code 0), the image exists; \
+		echo "Image $${IMAGE_NAME} already exists."; \
+		echo "Skipping download."; \
+	else \
+		echo "Downloading Image $${IMAGE_NAME}." \
+		mkdir ceos_images; \
+		cd ceos_images; \
+		ardl get eos --format cEOSarm --version $$CEOS_ARM_IMAGE --import-docker; \
+		cd ..; \
+		rm -fr ceos_images; \
+	fi
 ################################################################################
 # AVD Commands
 ################################################################################
@@ -1234,6 +1302,138 @@ lab-studios-interface-input-set: ## STUDIOS - Set Studios inputs (import) for Ca
 lab-studios-interfaces-tsv-update: ## STUDIOS - Build and update using tsv and make workspace.
 	$(MAKE) lab-studios-interface-input-get lab-studios-build-quick-actions lab-studios-interface-input-set
 
+# Studios lab cvp:
+.PHONY: lab-studios-interface-input-get-cvp
+lab-studios-interface-input-get-cvp: ## STUDIOS - Get Studios input (export) in for Campus fabric in YAML file CVP
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVP_SERVER"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_update.py \
+			--server "$$CVP_SERVER:443" \
+			--token "$$CVP_TOKEN_LAB" \
+			--operation get \
+			--studio-id studio-campus-access-interfaces \
+			--output-folder "$$dir/studios/lab" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: lab2-studios-build-quick-actions-cvp
+lab2-studios-build-quick-actions-cvp: ## STUDIOS - BETA Build quick actions to lab using tsv CVP
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVP_SERVER"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_build_ports_for_quick_actions2.py \
+			--server "$$CVP_SERVER:443" \
+			--token "$$CVP_TOKEN_LAB" \
+			--file-interface-tsv "$$dir/studios/studio-campus-ports.tsv" \
+			--file-interface-studio-inputs "$$dir/studios/lab/studio-campus-access-interfaces-inputs.yaml" \
+			--file-interface-studio-output "$$dir/studios/lab/studio-campus-access-interfaces-inputs-new.yaml" \
+			--avd-intended-directory "$$dir/intended/structured_configs" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: lab-studios-interface-input-set-cvp
+lab-studios-interface-input-set-cvp: ## STUDIOS - Set Studios inputs (import) for Campus fabric based on YAML file CVP
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVP_SERVER"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_update.py \
+			--server "$$CVP_SERVER:443" \
+			--token "$$CVP_TOKEN_LAB" \
+			--operation set \
+			--studio-id studio-campus-access-interfaces \
+			--yaml-file "$$dir/studios/lab/studio-campus-access-interfaces-inputs-new.yaml" \
+			--build-only=True \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: lab-studios-interfaces-tsv-update-cvp
+lab-studios-interfaces-tsv-update-cvp: ## STUDIOS - Build and update using tsv and make workspace.
+	$(MAKE) lab-studios-interface-input-get-cvp lab2-studios-build-quick-actions-cvp lab-studios-interface-input-set-cvp
+
+
+# Studios add all:
+.PHONY: lab-studios-add-all-inventory-updates-cvp
+lab-studios-add-all-inventory-updates-cvp: ## STUDIOS - Set Studios inventory update all
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVP_SERVER"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_onboarding2.py \
+			--server "$$CVP_SERVER" \
+			--token "$$CVP_TOKEN_LAB" \
+			--operation set-all \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+# Studios add all:
+.PHONY: lab-studios-add-all-inventory-updates-cvaas
+lab-studios-add-all-inventory-updates-cvass: ## STUDIOS - Set Studios inventory update all
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			mkdir -p "$$dir/studios/lab"; \
+			echo "$$CVAAS_SERVER_LAB"; \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_onboarding2.py \
+			--server "$$CVAAS_SERVER_LAB" \
+			--token "$$CVAAS_TOKEN_LAB" \
+			--operation set-all \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+
 # Studios PROD
 .PHONY: prod-studios-interface-input-get
 prod-studios-interface-input-get: ## STUDIOS - Get Studios input (export) in for Campus fabric in YAML file
@@ -1273,7 +1473,7 @@ prod-studios-build-quick-actions: ## STUDIOS - Build quick actions to lab using 
 			TARGET_SITE_RAW=$$(basename "$$dir"); \
 			mkdir -p "$$dir/studios/prod"; \
 			echo "$$CVAAS_SERVER_PROD"; \
-			python $(COMMON_PATH)/scripts/studios_scripts/studio_build_ports_for_quick_actions.py \
+			python $(COMMON_PATH)/scripts/studios_scripts/studio_build_ports_for_quick_actions2.py \
 			--server "$$CVAAS_SERVER_PROD" \
 			--token "$$CVAAS_TOKEN_PROD" \
 			--file-interface-tsv "$$dir/studios/studio-campus-ports.tsv" \
@@ -1335,3 +1535,87 @@ act-build-wan: ## ACT - BETA Build WAN configuration. Single site or list: SITES
 	-vvv \
 	$(ANSIBLE_ARGS) ; \
 	
+
+##### AGNI
+
+# .PHONY: agni-get-ca
+# agni-get-ca: ## AGNI - get Root CA
+
+# 	@echo "This Makefile's command: $(SITES)"
+# 	@set -a; \
+# 	source "$(HOME_DIR)/$(ENV_FILE)"; \
+# 	TARGET_SITE_RAW=$$(basename "$$dir"); \
+# 	TARGET_SITE_lower=$$(echo "$$TARGET_SITE_RAW" | tr '[:lower:]' '[:upper:]'); \
+# 	ANSIBLE_TARGET_HOSTS=$$(bash $(COMMON_PATH)/name-format.sh $$dir $$FABRIC_NAME_UPPER $$FABRIC_NAME;); \
+# 	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
+# 	echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+# 	python3 $(COMMON_PATH)/scripts/agni/agni-switch.py \
+# 	echo "python3 $(COMMON_PATH)/scripts/agni/agni-switch.py --inv_file \"$$dir/inventory.yml\" --fabric_name \"$$ANSIBLE_TARGET_HOSTS\" --site \"$$TARGET_SITE_RAW\" --env_name \"PROD\" --act \"temp/$${PROJECT_NAME}-$${TARGET_SITE_RAW}-inventory.yml\""; \
+
+
+.PHONY: agni-csr-get
+agni-csr-get: ## CLAB - AGNI CSR Get certificate
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		if [ -d "$$dir" ]; then \
+			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			ANSIBLE_TARGET_HOSTS="AGNI_CERTIFICATES"; \
+			export CVAAS_SERVER="$$CVAAS_SERVER_LAB"; \
+			export CVAAS_TOKEN="$$CVAAS_TOKEN_LAB"; \
+			ansible-playbook $(COMMON_PATH)/playbooks/agni-certificates.yml -i "$$dir/inventory-containerlab.yml" \
+			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+			-e "root_dir={{ inventory_dir }}/clab" \
+			-vvv \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: clab-tls-certificates
+clab-tls-certificates: ## CLAB - TLS CSR Get certificate
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		if [ -d "$$dir" ]; then \
+			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			ANSIBLE_TARGET_HOSTS="TLS_CERTIFICATES"; \
+			export CVAAS_SERVER="$$CVAAS_SERVER_LAB"; \
+			export CVAAS_TOKEN="$$CVAAS_TOKEN_LAB"; \
+			ansible-playbook $(COMMON_PATH)/playbooks/tls-certificates.yml -i "$$dir/inventory-containerlab.yml" \
+			-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+			-e "root_dir={{ inventory_dir }}/clab" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: clab-fqdn-add-host-file
+clab-fqdn-add-host-file: ## CLAB - Add fqdn to local hostfile names
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		echo "###############################"; \
+		if [ -d "$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			LAB_NAME="$$PROJECT_NAME-$$TARGET_SITE_RAW"; \
+			echo $$LAB_NAME; \
+			sudo python $(COMMON_PATH)/scripts/clab_add_host_fqdn.py \
+			--domain "$$TLS_DOMAIN_NAME" \
+			--lab "$$LAB_NAME" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done

@@ -17,9 +17,10 @@ from google.protobuf.json_format import MessageToDict
 import csv
 import pprint
 from studio_build_avd_cvaas_port_profiles import *
-
+import ssl
 
 RPC_TIMEOUT = 30  # in seconds
+
 
 def get_unique_col_data(column_name, data_sheet):
     print('hello')
@@ -202,11 +203,38 @@ def main(args):
     if args.cert_file:
         # Create the channel using the self-signed cert
         cert = args.cert_file.read()
-        channelCreds = grpc.ssl_channel_credentials(root_certificates=cert)
+        # channelCreds = grpc.ssl_channel_credentials(root_certificates=cert)
     else:
         # Otherwise default to checking against CAs
-        channelCreds = grpc.ssl_channel_credentials()
+        # channelCreds = grpc.ssl_channel_credentials()
 
+        # --- AUTO-FETCH LOGIC START ---
+        # Parse host and port from the server argument (e.g., "192.168.1.50:443")
+        try:
+            if ":" in args.server:
+                host, port = args.server.split(':')
+                port = int(port)
+                server = f"{host}:{port}"
+            else:
+                host = args.server
+                port = 443
+                server = f"{host}:{port}"
+        except ValueError:
+            # Default to 443 if no port specified, though your script args imply port is needed
+            host = server
+            port = 443
+            server = f"{host}:{port}"
+
+        try:
+            # Fetch the certificate as a PEM-encoded string
+            cert_pem = ssl.get_server_certificate((host, port))
+            cert = cert_pem.encode('utf-8')
+        except Exception as e:
+            # Fail gracefully if we can't reach the server
+            print(f"Error fetching certificate from server: {e}")
+            exit(1)
+        # --- AUTO-FETCH LOGIC END ---
+    channelCreds = grpc.ssl_channel_credentials(root_certificates=cert)
     connCreds = grpc.composite_channel_credentials(channelCreds, callCreds)
 
     # Construct the json_request based on provided arguments
@@ -312,10 +340,19 @@ def main(args):
                     print(f"Skipped Profile: {dev_port_profile['profile']}")
 
     print('$$$$$$$$$$#########################\n\n')
-    # pprint.pprint(port_profiles)
+    pprint.pprint(port_profiles)
+    pprint.pprint(studio_input)
+    #pprint.pprint(studio_input['inputs'])
     # pprint.pprint(studio_input['inputs']['portProfiles'])
-    portprofiles = studio_input['inputs']['portProfiles']
-    
+    if 'inputs' in studio_input:
+        if studio_input['inputs'] is not None and 'portProfiles' in studio_input['inputs']:
+            portprofiles = studio_input['inputs']['portProfiles']
+        else:
+            studio_input['inputs']['portProfiles'] = []
+            portprofiles = studio_input['inputs']['portProfiles']
+    else:
+        portprofiles = []
+
     for port_profile_cfg in port_profiles:
         port_profile_index = find_index_concise(portprofiles, port_profile_cfg['profile'], 'name')
 

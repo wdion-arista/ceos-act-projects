@@ -1,12 +1,11 @@
 # Media and Entertainment
 
 ## setup .env file
-Setup the .env file for api connections. Edit .env
+Setup the .env file for api connections. Edit .env with tokens and varibles names
 - ```
   cp .env-exmaple .env
   ```
-## Build AVD FABRIC Files
-- group_vars/FABRIC.yml
+## Containerlabs build
   
   ```
   make build
