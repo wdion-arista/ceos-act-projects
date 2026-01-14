@@ -60,7 +60,7 @@ from arista.changecontrol.v1 import services as changecontrol_services
 from fmp import wrappers_pb2 as fmp_wrappers
 from google.protobuf import wrappers_pb2 as wrappers
 import grpc
-
+import ssl
 LOGLEVEL = 0
 
 
@@ -74,18 +74,64 @@ CC_EXECUTION_TIMEOUT = 60  # in seconds
 MAINLINE_ID = ""  # ID to reference merged workspace data
 
 
+# def cv_client(server, token, cert_file):
+#     '''
+#     Create secure connection to CloudVision.
+#     '''
+
+#     callCreds = grpc.access_token_call_credentials(token)
+#     if cert_file:
+#         cert = cert_file.read()
+#         channelCreds = grpc.ssl_channel_credentials(root_certificates=cert)
+#     else:
+#         channelCreds = grpc.ssl_channel_credentials()
+#     connCreds = grpc.composite_channel_credentials(channelCreds, callCreds)
+#     return grpc.secure_channel(server, connCreds)
+
 def cv_client(server, token, cert_file):
     '''
     Create secure connection to CloudVision.
+    If no cert_file is provided, it automatically fetches the server's 
+    certificate to allow self-signed connections.
     '''
-
     callCreds = grpc.access_token_call_credentials(token)
+    
     if cert_file:
         cert = cert_file.read()
-        channelCreds = grpc.ssl_channel_credentials(root_certificates=cert)
     else:
-        channelCreds = grpc.ssl_channel_credentials()
+        # --- AUTO-FETCH LOGIC START ---
+        # Parse host and port from the server argument (e.g., "192.168.1.50:443")
+        try:
+            host, port = server.split(':')
+            port = int(port)
+        except ValueError:
+            # Default to 443 if no port specified, though your script args imply port is needed
+            host = server
+            port = 443
+            server = f"{host}:{port}"
+
+        log(0, f"Automatically fetching certificate from {host}:{port}...")
+        
+        try:
+            # Fetch the certificate as a PEM-encoded string
+            cert_pem = ssl.get_server_certificate((host, port))
+            cert = cert_pem.encode('utf-8')
+        except Exception as e:
+            # Fail gracefully if we can't reach the server
+            print(f"Error fetching certificate from server: {e}")
+            exit(1)
+        # --- AUTO-FETCH LOGIC END ---
+
+    channelCreds = grpc.ssl_channel_credentials(root_certificates=cert)
     connCreds = grpc.composite_channel_credentials(channelCreds, callCreds)
+    
+    # NOTE: If you still get a "Handshake failed" or "Hostname mismatch" error,
+    # it is because the cert's name doesn't match the URL (e.g. cert says "localhost" but URL is IP).
+    # Uncomment the lines below to override the name check:
+    
+    # options = (('grpc.ssl_target_name_override', 'localhost'),)
+    # return grpc.secure_channel(server, connCreds, options=options)
+
     return grpc.secure_channel(server, connCreds)
 
 

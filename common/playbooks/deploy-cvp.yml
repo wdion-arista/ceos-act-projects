@@ -13,7 +13,7 @@
         cv_token: "{{ lookup('env', 'CVP_TOKEN_LAB') }}"
         container_root: "{{ target_hosts }}"
         # Workspace state
-        cv_submit_workspace: true
+        cv_submit_workspace: false
 
         # Change Control state
         cv_run_change_control: false

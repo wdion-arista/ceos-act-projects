@@ -1,0 +1,19 @@
+---
+- name: Arista TLS Certificate
+  hosts: "{{ target_hosts | default('TLS_CERTIFICATES') }}"
+  gather_facts: false
+  # ignore_unreachable: true
+
+  tasks:
+
+    - name: Generate Arista TLS Certificate
+      vars:
+        ansible_user: cvpadmin
+        ansible_password: "{{ lookup('env', 'LABPASSPHRASE') }}"
+        cloudflare_api_token: "{{ lookup('env', 'TLS_CLOUDFLARE_API_TOKEN') }}"
+        acme_email: wrdion@gmail.com
+        tls_domain: "tech-eh.ca"
+      ansible.builtin.import_role:
+        # For testing
+        # name: tls_certificates/tls-certificates
+        name: tls-certificates
