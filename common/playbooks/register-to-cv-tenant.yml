@@ -59,8 +59,14 @@
     ansible_network_os: eos
     ansible_httpapi_port: 443
     ansible_python_interpreter: $(which python3)
-    terminattr_vrf: default                    # Change this if TerminiAttr needs to use another VRF
-    terminattr_interface: Management1                    # Change this if TerminiAttr needs to use another VRF
+    terminattr_vrf: None                    # Change this if TerminiAttr needs to use another VRF
+    terminator_vrf_setup: >-
+      {{ (terminattr_vrf | default('None') != 'None') | ternary('-cvopt CVaaS.vrf=' ~ terminattr_vrf, '') }}
+
+    terminattr_interface: None                    # Change this if TerminiAttr needs to use another VRF
+    terminator_interface_setup: >-
+      {{ (terminattr_interface | default('None') != 'None') | ternary('-cvopt CVaaS.sourceintf=' ~ terminattr_interface, '') }}
+    # terminator_interface_setup: "-cvopt CVaaS.sourceintf={{ terminattr_interface }}"
 
   tasks:
 
@@ -91,8 +97,8 @@
                 exec /usr/bin/TerminAttr \
                 -cvopt CVaaS.addr=apiserver.arista.io:443 \
                 -cvopt CVaaS.auth=token-secure,/tmp/cv-onboarding-token \
-                -cvopt CVaaS.vrf={{ terminattr_vrf }} \
-                -cvopt CVaaS.sourceintf={{ terminattr_interface }} \
+                {{ terminator_vrf_setup }} \
+                {{ terminator_interface_setup }} \
                 -disableaaa \
                 -smashexcludes=ale,flexCounter,hardware,kni,pulse,strata \
                 -ingestexclude=/Sysdb/cell/1/agent,/Sysdb/cell/2/agent \

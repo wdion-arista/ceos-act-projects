@@ -1,0 +1,120 @@
+---
+# This playbook will connect to CVP and generate an onboarding token than push the token to target devices and start terminattr
+# The target devices will be onboarded in CVP
+
+
+- name: Connect to cvass make token and download
+  hosts: localhost
+  gather_facts: false
+  vars:
+    cvp_url: "{{ lookup('env', 'CVP_SERVER') }}"
+    cvp_service_token: "{{ lookup('env', 'CVP_TOKEN') }}"       # Service Account auth token
+    device_mgmt_vrf: "default"
+  tasks:
+
+
+# Generate token for CVP VM cluster
+    - name: Generating TerminAttr onboarding token on CVP VM
+      tags: [build]
+      ansible.builtin.uri:
+        url: "https://{{ cvp_url }}/api/v3/services/admin.Enrollment/AddEnrollmentToken"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Cookie: "access_token={{ cvp_service_token }}"
+        validate_certs: false
+        return_content: true
+        body: '{"enrollmentToken": {"reenrollDevices": ["*"], "validFor": "720h"}}'
+      register: cvp_onboarding_token
+      until: cvp_onboarding_token.status == 200
+      retries: 10
+      delay: 2
+    - name: Debug - Show ecdrsa file
+      tags:
+        - service_user
+      ansible.builtin.debug:
+        msg: "Post info: {{ cvp_onboarding_token }}"
+      # when: ansible_verbosity >= 1
+    # Writing cvp token to file
+    - name: Parsing CVP token
+      tags: [build]
+      ansible.builtin.set_fact:
+        cvp_onboarding_token: "{{ cvp_onboarding_token.content | list | join }}"
+    - name: Writing CVP token to file
+      tags: [build]
+      ansible.builtin.copy:
+        content: "{{ cvp_onboarding_token[0].enrollmentToken.token }}"
+        dest: "./cvp-token.tok"
+        mode: u=rw,g=r,o=r
+
+- name: Onboard ContainerLab devices to CVP
+  hosts: "{{ target_hosts | default('FABRIC') }}" # arista_ceos # Change to your value from inventory file
+  gather_facts: false
+  vars:
+    ansible_user: cvpadmin
+    ansible_password: "{{ lookup('env', 'LABPASSPHRASE') }}"
+    ansible_connection: httpapi
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_validate_certs: false
+    ansible_network_os: eos
+    ansible_httpapi_port: 443
+    ansible_python_interpreter: $(which python3)
+    terminattr_vrf: default                    # Change this if TerminiAttr needs to use another VRF
+    terminattr_interface: Management1                    # Change this if TerminiAttr needs to use another VRF
+    terminator_server: 192.168.1.5
+    terminator_port: 9910
+
+  tasks:
+
+    - name: Copy onboarding token and start the TerminAttr daemon
+      tags: [onboard]
+      # when: "'arista_ceos' in groups"
+      ansible.builtin.uri:
+        url: "https://{{ ansible_user }}:{{ ansible_password }}@{{ hostvars[inventory_hostname].ansible_host }}/command-api"
+        method: POST
+        headers:
+          Accept: "application/json"
+        validate_certs: false
+        return_content: true
+        force_basic_auth: true
+        body:
+          jsonrpc: "2.0"
+          method: "runCmds"
+          params:
+            version: 1
+            cmds:
+              - "enable"
+              - cmd: "copy terminal: file:/tmp/token"
+                input: "{{ lookup('file', './cvp-token.tok') }}"
+              - "configure"
+              - "daemon TerminAttr"
+              - "shutdown"
+              - |
+                exec /usr/bin/TerminAttr \
+                -cvopt CVP.addr={{ terminator_server }}:{{ terminator_port }} \
+                -cvopt CVP.auth=token,/tmp/token \
+                -cvopt CVP.vrf={{ terminattr_vrf }} \
+                -cvopt CVP.sourceintf={{ terminattr_interface }} \
+                -disableaaa \
+                -smashexcludes=ale,flexCounter,hardware,kni,pulse,strata \
+                -ingestexclude=/Sysdb/cell/1/agent,/Sysdb/cell/2/agent \
+                -taillogs
+              - "no shutdown"
+            format: json
+            timestamps: false
+            autoComplete: false
+            expandAliases: false
+            stopOnError: false
+            streaming: false
+            includeErrorDetail: false
+          id: EapiExplorer-1
+        body_format: json
+      register: cv_onboarding_token
+      until: cv_onboarding_token.status == 200
+      retries: 10
+      delay: 2
+
+    - name: Ensure the tok file is deleted
+      ansible.builtin.file:
+        path: ./cvp-token.tok
+        state: absent

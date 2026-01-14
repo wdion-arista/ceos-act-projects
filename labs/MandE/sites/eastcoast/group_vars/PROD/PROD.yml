@@ -1,5 +1,8 @@
 mgmt_cidr: 24
 fabric_name: PROD
+clab_eos_version: "arista/ceos:4.35.0F"
+clab_static_mgmt_ip: true
+
 static_routes:
   - vrf: MGMT
     # IPv4_network/Mask.

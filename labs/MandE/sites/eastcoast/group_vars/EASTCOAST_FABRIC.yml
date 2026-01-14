@@ -95,7 +95,7 @@ management_ssh:
 
 
 ### DNS Domain ###
-dns_domain: MandEproductions.com
+dns_domain: tech-eh.ca
 
 # Common settings
 load_interval:
@@ -104,13 +104,13 @@ load_interval:
 clock:
   timezone: Canada/Eastern
 
-### NTP Servers ###
-ntp:
-  servers:
-    - name: 216.232.132.95
-      vrf: MGMT
-    - name: 23.133.168.244
-      vrf: MGMT
+# ### NTP Servers ###
+# ntp:
+#   servers:
+#     - name: 216.232.132.95
+#       vrf: MGMT
+#     - name: 23.133.168.244
+#       vrf: MGMT
     # - name: 216.232.132.95
     #   vrf: Production
     # - name: 23.133.168.244
@@ -122,15 +122,16 @@ ipv6_unicast_routing: false
 
 shutdown_interfaces_towards_undeployed_peers: false
 
-# interface_defaults:
-#   ethernet:
-#     shutdown: true
+interface_defaults:
+  ethernet:
+    shutdown: true
 #   # mtu: 8000
 
 errdisable:
   recovery:
     causes:
       - bpduguard
+      - link-flap
     interval: 30
 
 local_users:
@@ -171,17 +172,17 @@ local_users:
 p2p_uplinks_mtu: 1500
 
 
-# DNS Server
-ip_name_servers:
-  - ip_address: 8.8.8.8
-    vrf: MGMT
-  - ip_address: 4.2.2.1
-    vrf: MGMT
+# # DNS Server
+# ip_name_servers:
+#   - ip_address: 8.8.8.8
+#     vrf: MGMT
+#   - ip_address: 4.2.2.1
+#     vrf: MGMT
 
-  - ip_address: 8.8.8.8
-    vrf: Production
-  - ip_address: 4.2.2.1
-    vrf: Production
+#   - ip_address: 8.8.8.8
+#     vrf: Production
+#   - ip_address: 4.2.2.1
+#     vrf: Production
 
 # generate_cv_tags:
 #   topology_hints: true
@@ -250,10 +251,52 @@ aaa_authorization:
     privilege:
       - level: 15
 
-# radius_server:
-#   hosts:
-#     - host: 10.104.196.125
-#       key: 104F1B0C071643595F
+radius_server:
+  hosts:
+    - host: radsec.beta.agni.arista.io
+      tls:
+        enabled: true
+        ssl_profile: agni-server
+
+aaa_server_groups:
+  - name: agni-server-group
+    type: radius
+    servers:
+      - server: radsec.beta.agni.arista.io tls
+
+aaa_accounting:
+#   exec:
+#     default:
+#       type: "start-stop"
+#       group: PAT-Server
+#   system:
+#     default:
+#       type: "start-stop"
+#       group: PAT-Server
+  dot1x:
+    default:
+      type: "start-stop"
+      group: agni-server-group
+#   commands:
+#     default:
+#       - commands: "15"
+#         type: "start-stop"
+#         group: PAT-Server
+
+
+aaa_authentication:
+  # login:
+  #   default: local group PAT-Server
+  # enable:
+  #   default: local group PAT-Server
+  dot1x:
+    default: group agni-server-group
+
+dot1x:
+  dynamic_authorization: true
+  system_auth_control: true
+  protocol_lldp_bypass: true
+
 # tacacs_servers:
 #   hosts:
 #     - host: 10.210.207.11
