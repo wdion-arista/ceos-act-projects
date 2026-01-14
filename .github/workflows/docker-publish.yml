@@ -53,7 +53,7 @@ jobs:
           push: true
           # [FIX 2] Added platforms here so OrbStack (Mac) gets the native ARM64 image
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:l${{ github.ref_name }}
+          tags: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${{ github.ref_name }}
           build-args: |
             GH_USERNAME=${{ github.actor }}
             AVD_VERSION=${{ env.AVD_VERSION }}
