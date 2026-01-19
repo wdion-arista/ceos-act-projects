@@ -8,8 +8,10 @@ on:
   push:
     branches:
       - '**'
-    paths-ignore:
-      - '.dev.container/**'
+    paths:
+      - 'docker/**'
+    # paths-ignore:
+    #   - '.dev.container/**'
 
 jobs:
   # ------------------------------------------------------------------
