@@ -21,5 +21,6 @@ act_topgen/
 cvaas-token.tok
 .gitmodules
 *.code-workspace
-labs/
+labs/*
+!labs/.gitkeep
 core
