@@ -82,7 +82,7 @@ python studio_onboarding.py --server www.arista.io:443 --token-file token.tok \
 ### Accept specific updates
 
 ```shell
-python studio_onboarding.py --server www.cv-staging.corp.arista.io:443 --token-file token.tok \
+python studio_onboarding.py --server www.www.cv-prod-na-northeast1-b.arista.io:443 --token-file token.tok \
     --wsid 5f88c496-71ca-469d-af19-2a17a5f5d583 --operation set \
     --update-id 'add::DEVICE::{"deviceId":"ZZZ7777777","hostname":"leaf503","interfaceSize":73}'
 ```

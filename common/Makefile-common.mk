@@ -22,14 +22,23 @@ help: ## Display help message for all Makefiles
 
 ## Setup LAB Steps ##
 
-.PHONY: clab-containerlab-build-deploy
-clab-containerlab-build-deploy: ## CLAB - Build and deploy to containerlab on localhost
+.PHONY: clab-containerlab-build-deploy-default
+clab-containerlab-build-deploy-default: ## CLAB - Build and deploy to containerlab on localhost
 	export AUTO_DESTROY="True"; \
     $(MAKE) prod-build; \
 	#export MGMT_STATIC_IP_DISABLED="True"; \
 	$(MAKE) topgen-default containerlab-deploy clab-create-inventory clab-build; \
 	#export MGMT_STATIC_IP_DISABLED=""; \
 	$(MAKE) topgen-default ## Builds all the steps for the clab 
+
+.PHONY: clab-containerlab-build-deploy-avd
+clab-containerlab-build-deploy-avd: ## CLAB - Build and deploy to containerlab on localhost
+	export AUTO_DESTROY="True"; \
+    $(MAKE) prod-build; \
+	# export MGMT_STATIC_IP_DISABLED="False"; \
+	$(MAKE) topgen-default containerlab-deploy clab-create-inventory clab-build; \
+	#export MGMT_STATIC_IP_DISABLED=""; \
+	$(MAKE) topgen-avd containerlab-destroy-clean ## Builds all the steps for the clab 
 
 .PHONY: act-config-build-deploy-to-act
 act-config-build-deploy-to-act: ## ACT - Build and deploy to act - all steps 
@@ -791,6 +800,22 @@ containerlab-destroy: ## CONTAINERLAB - Destroy containerlab ceos locally
 			echo "--- Entering $$dir ---"; \
 			cd "$(HOME_DIR)/$$dir/clab"; \
 			clab destroy $(ANSIBLE_ARGS); \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
+.PHONY: containerlab-destroy-clean
+containerlab-destroy-clean: ## CONTAINERLAB - Destroy containerlab ceos locally
+
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		if [ -d "$(HOME_DIR)/$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			echo "--- Entering $$dir ---"; \
+			cd "$(HOME_DIR)/$$dir/clab"; \
+			clab destroy --cleanup $(ANSIBLE_ARGS); \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
 		fi; \
