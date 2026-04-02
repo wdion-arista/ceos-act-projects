@@ -20,9 +20,11 @@
         "ms-azuretools.vscode-docker",
         "oderwat.indent-rainbow",
         "mechatroner.rainbow-csv",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
+        "anthropic.claude-code"
       ]
     }
   },
+  "postCreateCommand": "bash ${localWorkspaceFolder}/containers/base/postCreate.sh",
   "containerUser": "avd"
 }

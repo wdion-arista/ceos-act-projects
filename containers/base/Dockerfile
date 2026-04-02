@@ -37,6 +37,16 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Optional: Claude Code — pass --build-arg INSTALL_CLAUDE_CODE=true to enable
+ARG INSTALL_CLAUDE_CODE=false
+RUN if [ "$INSTALL_CLAUDE_CODE" = "true" ]; then \
+    apt-get update && apt-get install -y nodejs npm && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm config set prefix '/home/avd/.npm-global' && \
+    npm install -g @anthropic-ai/claude-code; \
+    fi
+ENV PATH="/home/avd/.npm-global/bin:${PATH}"
+
 RUN echo -e "\nexport PATH=\$PATH:/home/avd/.local/bin" >> /home/avd/.bashrc
 RUN echo -e "\n\
 ceoscli() {\n\

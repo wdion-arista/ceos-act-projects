@@ -9,9 +9,6 @@ on:
   release:
     types: [published]
 
-env:
-  IMAGE: ghcr.io/${{ github.repository }}/base
-
 jobs:
   # ------------------------------------------------------------------
   # DEV JOB: branch builds — tagged with branch name
@@ -22,6 +19,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - variant: base
+            install_claude: "false"
+          - variant: base-ai
+            install_claude: "true"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -39,15 +43,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push (${{ matrix.variant }})
         uses: docker/build-push-action@v5
         with:
           context: containers/base
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ env.IMAGE }}:${{ github.ref_name }}
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.ref_name }}
           build-args: |
             GH_USERNAME=${{ github.actor }}
+            INSTALL_CLAUDE_CODE=${{ matrix.install_claude }}
 
   # ------------------------------------------------------------------
   # MAIN JOB: merged to main — tagged latest
@@ -60,6 +65,13 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - variant: base
+            install_claude: "false"
+          - variant: base-ai
+            install_claude: "true"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -77,15 +89,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push (${{ matrix.variant }})
         uses: docker/build-push-action@v5
         with:
           context: containers/base
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ env.IMAGE }}:latest
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest
           build-args: |
             GH_USERNAME=${{ github.actor }}
+            INSTALL_CLAUDE_CODE=${{ matrix.install_claude }}
 
   # ------------------------------------------------------------------
   # RELEASE JOB: GitHub release published — retag latest with version
@@ -96,6 +109,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        variant: [base, base-ai]
     steps:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -104,13 +120,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull latest image
-        run: docker pull ${{ env.IMAGE }}:latest
+      - name: Pull latest (${{ matrix.variant }})
+        run: docker pull ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest
 
-      - name: Tag with release version
+      - name: Tag with release version (${{ matrix.variant }})
         run: |
-          docker tag ${{ env.IMAGE }}:latest \
-            ${{ env.IMAGE }}:${{ github.event.release.tag_name }}
+          docker tag ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest \
+            ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.event.release.tag_name }}
 
-      - name: Push release tag
-        run: docker push ${{ env.IMAGE }}:${{ github.event.release.tag_name }}
+      - name: Push release tag (${{ matrix.variant }})
+        run: docker push ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.event.release.tag_name }}
