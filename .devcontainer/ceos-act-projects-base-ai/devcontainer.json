@@ -8,13 +8,13 @@
     "--group-add=2020"
   ],
   "mounts": [
-    //"source=/Users/${localEnv:USER}/.ssh,target=/home/avd/.ssh,type=bind",
+    "source=/Users/${localEnv:USER}/.ssh,target=/home/avd/.ssh,type=bind",
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
     "type=bind,src=/run/docker/netns,dst=/run/docker/netns",
     "type=bind,src=/lib/modules,dst=/lib/modules",
     "source=${localEnv:HOME}/bin,target=/home/avd/bin,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.ai-proxy-api-key,target=/home/avd/.ai-proxy-api-key,type=bind,readonly"
-    // "source=${localEnv:HOME}/.claude,target=/home/avd/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.ai-proxy-api-key,target=/home/avd/.ai-proxy-api-key,type=bind,readonly",
+    "source=${localEnv:HOME}/.claude,target=/home/avd/.claude,type=bind,consistency=cached"
     // "source=claude-native,target=/home/avd/.local/share/claude,type=volume"
   ],
   "postStartCommand": "sudo chmod 666 /var/run/docker.sock && sudo chown -R avd:avd /home/avd/.local/share/claude",

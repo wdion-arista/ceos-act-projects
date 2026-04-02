@@ -35,7 +35,7 @@ l3leaf:
               - "red_site2"
           id: 3
           campus_pod: SITE2
-          bgp_as: 65201
+          bgp_as: 65202
           platform: "{{ platform_clab_type | default('7280SR3') }}"
           uplink_interfaces: [Ethernet47]
           uplink_switches: [SW102-SITE1-R]
