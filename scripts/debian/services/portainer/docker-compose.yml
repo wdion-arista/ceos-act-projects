@@ -1,0 +1,26 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    # This ensures the container starts automatically on boot/reboot
+    restart: always
+    ports:
+      - "9443:9443"
+      - "8000:8000"
+    volumes:
+      # Connects Portainer to the OrbStack Docker engine
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persists your Portainer settings/users locally
+      - portainer_data:/data
+    networks:
+      - portainer_net
+
+volumes:
+  portainer_data:
+
+networks:
+  portainer_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

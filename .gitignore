@@ -20,7 +20,10 @@ act_connections/
 act_topgen/
 cvaas-token.tok
 .gitmodules
+common/playbooks/agni_certificates/
+common/playbooks/tls_certificates/
 *.code-workspace
 labs/*
 !labs/.gitkeep
 core
+.env_GH

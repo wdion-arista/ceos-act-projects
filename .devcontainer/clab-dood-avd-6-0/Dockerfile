@@ -5,10 +5,8 @@
 
 # Desired Docker GID
 
-# FROM ghcr.io/srl-labs/containerlab/devcontainer-dood:latest
+FROM ghcr.io/srl-labs/containerlab/devcontainer-dood:latest
 # FROM ghcr.io/aristanetworks/avd/universal:${AVD_VERSION}
-FROM mcr.microsoft.com/devcontainers/python:3.11-bookworm
-
 
 ARG AVD_VERSION="5.6.0"
 ENV AVD_VERSION=${AVD_VERSION}
@@ -20,58 +18,7 @@ ARG GH_USERNAME
 ENV GH_USERNAME=$GH_USERNAME
 SHELL ["/bin/bash", "-c"]
 
-ARG CLAB_VERSION
-
 USER root
-
-### Base Installs
-
-# Add the netdevops repository
-RUN echo "deb [trusted=yes] https://netdevops.fury.site/apt/ /" | \
-    tee -a /etc/apt/sources.list.d/netdevops.list
-
-# Install necessary packages, including curl
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    direnv \
-    btop \
-    iputils-ping \
-    tcpdump \
-    iproute2 \
-    qemu-kvm \
-    dnsutils \
-    telnet \
-    curl
-
-    # Install Containerlab
-RUN bash -c "$(curl -sL https://get.containerlab.dev)" -- -v ${CLAB_VERSION}
-
-# # Install GitHub CLI directly from the latest release
-# RUN bash -c 'ARCH=$(uname -m | sed "s/x86_64/amd64/" | sed "s/aarch64/arm64/") && \
-#     VERSION=$(curl -s https://api.github.com/repos/cli/cli/releases/latest | \
-#     grep -oP "\"tag_name\": \"\K[^\"]+") && \
-#     CLEAN_VERSION=${VERSION#v} && \
-#     DOWNLOAD_URL="https://github.com/cli/cli/releases/download/${VERSION}/gh_${CLEAN_VERSION}_linux_${ARCH}.tar.gz" && \
-#     curl -L "$DOWNLOAD_URL" | tar xz -C /tmp && \
-#     mv /tmp/gh_${CLEAN_VERSION}_linux_${ARCH}/bin/gh /usr/local/bin/ && \
-#     chmod +x /usr/local/bin/gh && \
-#     rm -rf /tmp/gh_${CLEAN_VERSION}_linux_${ARCH}'
-
-# Add empty docker config files to avoid clab warnings for root user
-RUN mkdir -p /root/.docker && echo "{}" > /root/.docker/config.json
-
-# Maintain SSH_AUTH_SOCK env var when using sudo
-RUN mkdir -p /etc/sudoers.d && echo 'Defaults env_keep += "SSH_AUTH_SOCK"' > /etc/sudoers.d/ssh_auth_sock
-
-# Add vscode user to clab_admins group so that it can run sudo-less clab commands
-# the group is created when clab is installed via the installation script
-RUN groupadd clab_admins
-RUN usermod -aG clab_admins vscode
-
-
-### Base Installs END
-
-USER root
-
 RUN apt update \
     && apt autoremove -y \
     && wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_arm64 -O /usr/bin/yq \
@@ -146,25 +93,7 @@ remove_dangling_images() {\n\
 }\n" >> /home/vscode/.zshrc
 
 # Switch to avd user
-# Switch to the vscode user provided by the base image
 USER vscode
-
-# Copy dclab script used to run the local containerlab build after `make build`
-COPY ./dclab /usr/local/bin/dclab
-
-# Create SSH key for vscode user to enable passwordless SSH to devices
-RUN ssh-keygen -t ecdsa -b 256 -N "" -f ~/.ssh/id_ecdsa
-
-# Add empty docker config files to avoid clab warnings for vscode user
-RUN mkdir -p /home/vscode/.docker && echo "{}" > /home/vscode/.docker/config.json
-
-# Setup Zsh and plugins
-COPY ./zsh/.zshrc-slim /home/vscode/.zshrc
-COPY ./zsh/.p10k.zsh /home/vscode/.p10k.zsh
-COPY ./zsh/install-zsh-plugins.sh /tmp/install-zsh-plugins.sh
-RUN bash -c "/tmp/install-zsh-plugins.sh"
-
-
 RUN pip install --upgrade pip 
 ENV PATH="/home/vscode/.local/bin:${PATH}"
 RUN curl https://pyenv.run | bash
