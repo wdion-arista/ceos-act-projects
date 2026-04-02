@@ -16,7 +16,7 @@
     # Versions
     # act_eos_version: "4.33.1.1F"
     act_generic_os_version: "ubuntu-2404-lts-amd64"
-    act_tools_os_version: "ubuntu-pro-2204-lts"
+    act_tools_os_version: "ubuntu-2404-lts"
     # act_cvp_version: "2024.3.2"
     # Device (veos/generic) user/pass
     # act_cvp_user: "root"
