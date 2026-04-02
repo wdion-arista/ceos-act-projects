@@ -1,0 +1,24 @@
+services:
+  ceos-act:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ceos-act-projects:latest
+    working_dir: /workspace
+    volumes:
+      - type: bind
+        source: ../../common
+        target: /workspace/common
+      - type: bind
+        source: ../../labs
+        target: /workspace/labs
+    env_file:
+      - ../../.env
+    privileged: true
+    network_mode: host
+    pid: host
+    group_add:
+      - "2020"
+    stdin_open: true
+    tty: true
+    user: avd
