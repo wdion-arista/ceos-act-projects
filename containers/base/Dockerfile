@@ -40,7 +40,8 @@ RUN apt-get update && \
 # Optional: Claude Code — pass --build-arg INSTALL_CLAUDE_CODE=true to enable
 ARG INSTALL_CLAUDE_CODE=false
 RUN if [ "$INSTALL_CLAUDE_CODE" = "true" ]; then \
-    apt-get update && apt-get install -y nodejs npm && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/* && \
     npm config set prefix '/home/avd/.npm-global' && \
     npm install -g @anthropic-ai/claude-code; \
