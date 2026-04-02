@@ -1,0 +1,28 @@
+{
+  "name": "ceos-act-projects base",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "ceos-act",
+  "workspaceFolder": "/workspace",
+  "containerEnv": {
+    "ARISTA_TOKEN": "${localEnv:ARTOKEN}",
+    "CEOS_LAB_VERSION": "${localEnv:CEOS_IMAGE_VERSION:4.35.1F}",
+    "CV_API_TOKEN": "${localEnv:CV_API_TOKEN}",
+    "GITHUB_REPOSITORY": "${localEnv:GITHUB_REPOSITORY:wdion-arista/aclabs}",
+    "REMOTE_CONTAINERS": "true"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "srl-labs.vscode-containerlab",
+        "samuelcolvin.jinjahtml",
+        "ms-vscode.makefile-tools",
+        "redhat.ansible",
+        "ms-azuretools.vscode-docker",
+        "oderwat.indent-rainbow",
+        "mechatroner.rainbow-csv",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+  "containerUser": "avd"
+}
