@@ -1,6 +1,7 @@
 {
   "name": "AVD GH Containerlab-Docker-Ouside-Docker",
-  "image": "ghcr.io/wdion-arista/wdion-arista/ceos-act-projects:latest",
+  // "image": "ghcr.io/wdion-arista/wdion-arista/ceos-act-projects:latest",
+  "image": "ghcr.io/wdion-arista/wdion-arista/ceos-act-projects:v1.1.1",
   // "image": "myrepo.local/avd/ceos-act-projects:v1.1.0",
   // "image": "containerlab/clab-dood-avd:v1.1.0",
   // "build": { 
