@@ -27,7 +27,8 @@ local_users:
     privilege: 15
     role: network-admin
     sha512_password: "{{ ansible_password | password_hash('sha512', salt='arista', rounds=5000) }}"
-    ssh_key: "{{ lookup('ansible.builtin.file', lookup('env', 'HOME') + '/.ssh/id_ecdsa.pub') }}"
+    # ssh_key: "{{ lookup('ansible.builtin.file', lookup('env', 'HOME') + '/.ssh/id_ecdsa.pub') }}"
+    ssh_key: "{{ lookup('ansible.builtin.first_found', dict(files=['id_ed25519.pub', 'id_ecdsa.pub', 'id_rsa.pub'], paths=[lookup('env', 'HOME') + '/.ssh/'])) }}"
   - name: service
     sha512_password: $6$xqN6kvscOiKvO4K0$uMr17y1EGzBOu0e3k7UrTbx5.dHqluAQ0KB5i.Qck6Md5lc0iAx7TGPlXORqzGxZLg.ro6ggy0C/CNdBIH52j.
     shell: /bin/bash

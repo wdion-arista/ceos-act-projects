@@ -1,14 +1,15 @@
 {
-  "name": "AVD Containerlab-Docker-Ouside-Docker-Bookworm",
+  "name": "AVD 6.0 Containerlab-Docker-Ouside-Docker",
   // "image": "ghcr.io/srl-labs/containerlab/devcontainer-dood:latest",
-  "image": "containerlab/clab-dood-avd:v1.0.1",
+  "image": "containerlab/clab-dood-avd:v2.6.0-dev6",
   "build": { 
-      "dockerfile": "Dockerfile"
+      "dockerfile": "Dockerfile",
       // "context": ".."
-      // "args":{
+      "args": {
+        "AVD_VERSION": "6.0.0-dev6"
       //     "GITLAB_PAT": "{localEnv:GITLAB_PAT}",
       //     "GITLAB_USER": "{localEnv:GITLAB_USER}"
-      // }
+      }
   },  
   "runArgs": [
     "--network=host",
