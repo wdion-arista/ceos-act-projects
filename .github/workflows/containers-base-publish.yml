@@ -1,0 +1,132 @@
+name: Build and Publish containers/base Image
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'containers/base/**'
+  release:
+    types: [published]
+
+jobs:
+  # ------------------------------------------------------------------
+  # DEV JOB: branch builds — tagged with branch name
+  # ------------------------------------------------------------------
+  build-and-push-dev:
+    if: github.event_name == 'push' && github.ref_name != 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - variant: base
+            install_claude: "false"
+          - variant: base-ai
+            install_claude: "true"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (${{ matrix.variant }})
+        uses: docker/build-push-action@v5
+        with:
+          context: containers/base
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.ref_name }}
+          build-args: |
+            GH_USERNAME=${{ github.actor }}
+            INSTALL_CLAUDE_CODE=${{ matrix.install_claude }}
+
+  # ------------------------------------------------------------------
+  # MAIN JOB: merged to main — tagged latest
+  # ------------------------------------------------------------------
+  build-and-push-main:
+    if: github.event_name == 'push' && github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - variant: base
+            install_claude: "false"
+          - variant: base-ai
+            install_claude: "true"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (${{ matrix.variant }})
+        uses: docker/build-push-action@v5
+        with:
+          context: containers/base
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest
+          build-args: |
+            GH_USERNAME=${{ github.actor }}
+            INSTALL_CLAUDE_CODE=${{ matrix.install_claude }}
+
+  # ------------------------------------------------------------------
+  # RELEASE JOB: GitHub release published — retag latest with version
+  # ------------------------------------------------------------------
+  tag-release:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        variant: [base, base-ai]
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest (${{ matrix.variant }})
+        run: docker pull ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest
+
+      - name: Tag with release version (${{ matrix.variant }})
+        run: |
+          docker tag ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest \
+            ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.event.release.tag_name }}
+
+      - name: Push release tag (${{ matrix.variant }})
+        run: docker push ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.event.release.tag_name }}
