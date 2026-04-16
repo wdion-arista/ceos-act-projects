@@ -1,28 +1,232 @@
 #!/bin/bash
 
-# Define the directory to list folders from.
-TARGET_DIR="./labs/"
+WORKSPACE_DIR="$(cd "$(dirname "$0")" && pwd)"
+TARGET_DIR="$WORKSPACE_DIR/labs"
+DEVCONTAINER_CONFIG="$WORKSPACE_DIR/.devcontainer/devcontainer.json"
 
-# Check if fzf is installed
-if ! command -v fzf &> /dev/null; then
-    echo "Error: fzf is not installed. Please install it to use this script."
+mapfile -t labs < <(find "$TARGET_DIR" -maxdepth 1 -mindepth 1 -type d | sort | xargs -n1 basename)
+
+if [ ${#labs[@]} -eq 0 ]; then
+    echo "No labs found in $TARGET_DIR"
     exit 1
 fi
 
-echo "### Interactive Folder Menu with fzf ###"
+if ! command -v fzf &>/dev/null; then
+    echo "fzf is not installed (recommended for a better lab picker)."
+    read -rp "Install fzf now? [y/N] " install_fzf
+    if [[ "$install_fzf" =~ ^[Yy]$ ]]; then
+        sudo apt-get install -y fzf
+    fi
+fi
 
-# Use fzf to select a directory
-# -d prevents fzf from displaying files
-# -1 ensures fzf exits immediately after a single selection
-# -0 ensures it outputs the result without a newline, which is cleaner
-selected_dir=$(find "$TARGET_DIR" -maxdepth 1 -type d | fzf)
+if command -v fzf &>/dev/null; then
+    selected=$(printf '%s\n' "${labs[@]}" | fzf --prompt="Select lab: " --height=40%)
+else
+    echo "Select a lab:"
+    select lab in "${labs[@]}"; do
+        [ -n "$lab" ] && selected="$lab" && break
+        echo "Invalid selection, try again."
+    done
+fi
 
-# Check if a directory was selected
-if [ -z "$selected_dir" ]; then
-    echo "No folder selected. Exiting."
+if [ -z "$selected" ]; then
+    echo "No lab selected. Exiting."
     exit 0
 fi
 
-echo "Navigating to: $selected_dir"
-cd "$selected_dir" || { echo "Error: Could not change directory."; exit 1; }
-echo "You are now in: $(pwd)"
+export CEOS_LAB="$selected"
+echo "Opening lab: $CEOS_LAB"
+
+LAB_PATH="$WORKSPACE_DIR/labs/$CEOS_LAB"
+CONTAINER_NAME="ceos-act-$CEOS_LAB"
+
+# Detect OrbStack guest environment (Linux VM with Mac passthrough utilities)
+OSASCRIPT="/opt/orbstack-guest/bin/osascript"
+IS_ORBSTACK_GUEST=false
+[ -x "$OSASCRIPT" ] && IS_ORBSTACK_GUEST=true
+
+# Cache dir on Mac filesystem (accessible from Linux via OrbStack's FS mount)
+MAC_CACHE="/Users/$USER/.cache/ceos-act-start"
+mkdir -p "$MAC_CACHE"
+
+open_vscode() {
+    # Use attached-container URI to connect directly to the running container
+    # without re-reading devcontainer.json (which has unresolved env vars).
+    CONTAINER_JSON=$(printf '{"containerName":"%s"}' "$CONTAINER_NAME")
+    ATTACH_HEX=$(printf '%s' "$CONTAINER_JSON" | xxd -p | tr -d '\n')
+    FOLDER_URI="vscode-remote://attached-container+${ATTACH_HEX}${LAB_PATH}"
+
+    if $IS_ORBSTACK_GUEST; then
+        # Write a Mac-side helper so code runs with proper Mac environment + Docker
+        OPEN_HELPER="$MAC_CACHE/open_vscode.sh"
+        cat > "$OPEN_HELPER" << HELPER
+#!/bin/sh
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:\$PATH"
+for CODE_BIN in \
+    /usr/local/bin/code \
+    "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" \
+    /opt/homebrew/bin/code; do
+    if [ -x "\$CODE_BIN" ]; then
+        "\$CODE_BIN" --folder-uri "$FOLDER_URI" &
+        exit 0
+    fi
+done
+echo "VSCode code CLI not found" >&2
+exit 1
+HELPER
+        chmod +x "$OPEN_HELPER"
+        echo "Opening VSCode..."
+        "$OSASCRIPT" -e "do shell script \"$OPEN_HELPER\""
+    else
+        echo "Opening VSCode..."
+        code --folder-uri "$FOLDER_URI" &
+    fi
+}
+
+if $IS_ORBSTACK_GUEST; then
+    # -----------------------------------------------------------------------
+    # OrbStack Linux VM: the VM's own Docker daemon is INVISIBLE to Mac VSCode.
+    # We need containers in OrbStack's Mac Docker (the daemon VSCode uses).
+    #
+    # Strategy: try to reach Mac Docker via its socket, which is visible in
+    # the Linux VM's filesystem at /Users/$USER/.orbstack/run/docker.sock
+    # (OrbStack may forward the socket connection across the VM boundary).
+    # If that fails, fall back to running devcontainer via osascript on Mac.
+    # -----------------------------------------------------------------------
+
+    ORBSTACK_SOCK="/Users/$USER/.orbstack/run/docker.sock"
+    TEMP_DIR=$(mktemp -d)
+    TEMP_CONFIG="$TEMP_DIR/devcontainer.json"
+    trap 'rm -rf "$TEMP_DIR"' EXIT
+    sed "s|\${localEnv:CEOS_LAB}|$CEOS_LAB|g" "$DEVCONTAINER_CONFIG" > "$TEMP_CONFIG"
+
+    # Test if we can reach Mac Docker via the OrbStack socket from this VM
+    if [ -S "$ORBSTACK_SOCK" ] && \
+       DOCKER_HOST="unix://$ORBSTACK_SOCK" docker info >/dev/null 2>&1; then
+
+        echo "Connected to Mac Docker via OrbStack socket."
+        export DOCKER_HOST="unix://$ORBSTACK_SOCK"
+
+        EXISTING_ID=$(docker ps -a --filter "name=^/${CONTAINER_NAME}$" --format "{{.ID}}" 2>/dev/null)
+        if [ -n "$EXISTING_ID" ]; then
+            RUNNING=$(docker ps --filter "name=^/${CONTAINER_NAME}$" --format "{{.ID}}" 2>/dev/null)
+            [ -z "$RUNNING" ] && docker start "$EXISTING_ID"
+            open_vscode
+        else
+            echo "Starting container..."
+            UP_JSON=$(devcontainer up \
+                --workspace-folder "$WORKSPACE_DIR" \
+                --config "$TEMP_CONFIG" 2>&1 | tee /dev/stderr | grep '"outcome"')
+            CONTAINER_ID=$(echo "$UP_JSON" | grep -o '"containerId":"[^"]*"' | cut -d'"' -f4)
+            if [ -n "$CONTAINER_ID" ]; then
+                docker rename "$CONTAINER_ID" "$CONTAINER_NAME" 2>/dev/null || true
+                open_vscode
+            fi
+        fi
+
+    else
+        # Socket not reachable — run devcontainer via osascript on Mac
+        MAC_CONFIG="$MAC_CACHE/devcontainer.json"
+        DC_HELPER="$MAC_CACHE/dc_up.sh"
+        sed "s|\${localEnv:CEOS_LAB}|$CEOS_LAB|g" "$DEVCONTAINER_CONFIG" > "$MAC_CONFIG"
+
+        cat > "$DC_HELPER" << HELPER
+#!/bin/sh
+# Expand PATH so Homebrew (Apple Silicon) and local npm bins are found
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:\$PATH"
+
+EXISTING=\$(docker ps -a --filter "name=^/${CONTAINER_NAME}\$" --format "{{.ID}}" 2>/dev/null)
+if [ -n "\$EXISTING" ]; then
+    if ! docker ps --filter "name=^/${CONTAINER_NAME}\$" --format "{{.ID}}" 2>/dev/null | grep -q .; then
+        docker start "\$EXISTING" >/dev/null 2>&1
+    fi
+    echo '{"outcome":"success","containerId":"'"\$EXISTING"'"}'
+    exit 0
+fi
+
+# Find devcontainer CLI
+DC_BIN=""
+for DC in \
+    /usr/local/bin/devcontainer \
+    /opt/homebrew/bin/devcontainer \
+    "\$HOME/.npm-global/bin/devcontainer" \
+    "\$(npm root -g 2>/dev/null)/.bin/devcontainer"; do
+    if [ -x "\$DC" ]; then
+        DC_BIN="\$DC"
+        break
+    fi
+done
+
+# Auto-install if npm is available and devcontainer is missing
+if [ -z "\$DC_BIN" ] && command -v npm >/dev/null 2>&1; then
+    npm install -g @devcontainers/cli >/dev/null 2>&1
+    for DC in /usr/local/bin/devcontainer /opt/homebrew/bin/devcontainer "\$HOME/.npm-global/bin/devcontainer"; do
+        if [ -x "\$DC" ]; then DC_BIN="\$DC"; break; fi
+    done
+fi
+
+if [ -z "\$DC_BIN" ]; then
+    echo '{"outcome":"error","message":"devcontainer CLI not found on Mac — install with: npm install -g @devcontainers/cli"}'
+    exit 1
+fi
+
+OUTPUT=\$("\$DC_BIN" up --workspace-folder "$WORKSPACE_DIR" --config "$MAC_CONFIG" 2>/dev/null)
+echo "\$OUTPUT"
+CIDS=\$(echo "\$OUTPUT" | grep -o '"containerId":"[^"]*"' | cut -d'"' -f4)
+[ -n "\$CIDS" ] && docker rename "\$CIDS" "$CONTAINER_NAME" 2>/dev/null || true
+HELPER
+        chmod +x "$DC_HELPER"
+
+        echo "Starting container via Mac Docker (osascript)..."
+        DC_RESULT=$("$OSASCRIPT" -e "do shell script \"$DC_HELPER\"" 2>&1)
+
+        if echo "$DC_RESULT" | grep -q '"outcome":"success"'; then
+            echo "Container ready."
+            open_vscode
+        else
+            MSG=$(echo "$DC_RESULT" | grep -o '"message":"[^"]*"' | cut -d'"' -f4)
+            echo "Error: ${MSG:-$DC_RESULT}"
+            echo ""
+            echo "To fix: install devcontainer CLI on your Mac with:"
+            echo "  npm install -g @devcontainers/cli"
+            exit 1
+        fi
+    fi
+
+else
+    # -----------------------------------------------------------------------
+    # Running directly on Mac (or non-OrbStack Linux): use local Docker
+    # -----------------------------------------------------------------------
+    TEMP_DIR=$(mktemp -d)
+    TEMP_CONFIG="$TEMP_DIR/devcontainer.json"
+    trap 'rm -rf "$TEMP_DIR"' EXIT
+
+    sed "s|\${localEnv:CEOS_LAB}|$CEOS_LAB|g" "$DEVCONTAINER_CONFIG" > "$TEMP_CONFIG"
+
+    if ! command -v devcontainer &>/dev/null; then
+        echo "devcontainer CLI is not installed (required to auto-start the container)."
+        read -rp "Install it now via npm? [y/N] " install_dc
+        if [[ "$install_dc" =~ ^[Yy]$ ]]; then
+            sudo npm install -g @devcontainers/cli
+        fi
+    fi
+
+    EXISTING_ID=$(docker ps -a --filter "name=^/${CONTAINER_NAME}$" --format "{{.ID}}" 2>/dev/null)
+    if [ -n "$EXISTING_ID" ]; then
+        RUNNING=$(docker ps --filter "name=^/${CONTAINER_NAME}$" --format "{{.ID}}" 2>/dev/null)
+        [ -z "$RUNNING" ] && docker start "$EXISTING_ID"
+        open_vscode
+    elif command -v devcontainer &>/dev/null; then
+        echo "Starting container..."
+        UP_JSON=$(devcontainer up \
+            --workspace-folder "$WORKSPACE_DIR" \
+            --config "$TEMP_CONFIG" 2>&1 | tee /dev/stderr | grep '"outcome"')
+        CONTAINER_ID=$(echo "$UP_JSON" | grep -o '"containerId":"[^"]*"' | cut -d'"' -f4)
+        if [ -n "$CONTAINER_ID" ]; then
+            docker rename "$CONTAINER_ID" "$CONTAINER_NAME" 2>/dev/null || true
+            open_vscode
+        fi
+    else
+        echo "devcontainer CLI not found. Start the container manually in VSCode."
+    fi
+fi
