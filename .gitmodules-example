@@ -1,0 +1,3 @@
+[submodule "labs/MandE"]
+	path = labs/MandE
+	url = https://github.com/wdion-arista/MandE.git
