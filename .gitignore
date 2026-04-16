@@ -13,12 +13,11 @@ temp/
 __pycache__/
 *.log
 secrets.yml
-*/cvaas-token.tok
+*.tok
 .vscode/
 *.log
 act_connections/
 act_topgen/
-cvaas-token.tok
 .gitmodules
 common/playbooks/agni_certificates/
 common/playbooks/tls_certificates/
