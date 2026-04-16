@@ -1,9 +1,0 @@
----
-
-# Definition of connected endpoints in the fabric.
-
-##############################################
-# Switchport config for SW301-SITE3-P
-
-generic_devices:
-        
