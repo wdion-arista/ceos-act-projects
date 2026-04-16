@@ -1,0 +1,44 @@
+{
+  "name": "CAP - AVD GH Containerlab-Docker-Outside-Docker (AI)",
+  "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:wdion_new_base",
+  "runArgs": [
+    "--name=ceos-act-${localEnv:CEOS_LAB}",
+    "--network=host",
+    "--pid=host",
+    "--privileged",
+    "--group-add=2020"
+  ],
+  "mounts": [
+    "source=/Users/${localEnv:USER}/.ssh,target=/home/avd/.ssh,type=bind",
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "type=bind,src=/run/docker/netns,dst=/run/docker/netns",
+    "type=bind,src=/lib/modules,dst=/lib/modules",
+    "source=${localEnv:HOME}/bin,target=/home/avd/bin,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.ai-proxy-api-key,target=/home/avd/.ai-proxy-api-key,type=bind,readonly",
+    "source=${localEnv:HOME}/.claude,target=/home/avd/.claude,type=bind,consistency=cached"
+    // "source=claude-native,target=/home/avd/.local/share/claude,type=volume"
+  ],
+  "postStartCommand": "sudo chmod 666 /var/run/docker.sock && sudo chown -R avd:avd /home/avd/.local/share/claude",
+  "postCreateCommand": "bash ${localWorkspaceFolder}/containers/base/postCreate.sh",
+  "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind",
+  "workspaceFolder": "${localWorkspaceFolder}/labs/${localEnv:CEOS_LAB:MandE}",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3"
+      },
+      "extensions": [
+        "srl-labs.vscode-containerlab",
+        "samuelcolvin.jinjahtml",
+        "ms-vscode.makefile-tools",
+        "redhat.ansible",
+        "ms-azuretools.vscode-docker",
+        "oderwat.indent-rainbow",
+        "mechatroner.rainbow-csv",
+        "redhat.vscode-yaml",
+        "anthropic.claude-code"
+      ]
+    }
+  },
+  "containerUser": "avd"
+}
