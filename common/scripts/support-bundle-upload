@@ -13,6 +13,8 @@ import datetime
 import requests
 
 from dotenv import load_dotenv
+
+load_dotenv()
 import ruamel.yaml
 
 # Determine the home directory
@@ -107,9 +109,9 @@ def upload_file_egnyte(source_sb_filename, egnyte_token, egnyte_folder):
     """
     EGNYTE Upload
     """
-    domain_name = "aristanetworks"
-    token = "***REDACTED_CLIENT_ID***"
-    redirect = "https://www.arista.com"
+    domain_name = os.getenv("EGNYTE_DOMAIN_NAME")
+    token = os.getenv("EGNYTE_TOKEN")
+    redirect = os.getenv("EGNYTE_REDIRECT")
     domainpath = f"https://{domain_name}.egnyte.com"
     print(domainpath)
     #auth_url = f"{domainpath}/token?client_id={token}&redirect_uri={redirect}&scope=<SELECTED SCOPES>&state=<STRING>&response_type=code"
@@ -117,21 +119,7 @@ def upload_file_egnyte(source_sb_filename, egnyte_token, egnyte_folder):
     url = f"{domainpath}/v1/token"
     get_user_info(token,auth_url)
 
-"""
-curl -X POST \
-https://aristanetworks.egnyte.com/puboauth/token \
--H "Content-Type: application/x-www-form-urlencoded" \
--d "client_id=***REDACTED_CLIENT_ID***" \
--d "client_secret=***REDACTED_CLIENT_SECRET***" \
--d "username=arista_uploader" \
--d "password=***REDACTED_PASSWORD***" \
--d "grant_type=password"
 
-https://aristanetworks.egnyte.com/ul/rataEZqDbm
-https://aristanetworks.egnyte.com/puboauth/token?client_id=***REDACTED_CLIENT_ID***&redirect_uri=https://localhost&response_type=code
-https://aristanetworks.egnyte.com/puboauth/token?client_id=48u8h5284aspt5dkku4pxt5j&redirect_uri=https://localhost&response_type=code
-https://aristanetworks.egnyte.com/fl/VypT9xwmdCdV
-"""
 def main():
     parser = argparse.ArgumentParser(description="A script to upload the support bundle to Egnyte")
 
