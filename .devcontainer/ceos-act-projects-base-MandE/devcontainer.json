@@ -1,5 +1,5 @@
 {
-  "name": "CAP - AVD GH Containerlab-Docker-Ouside-Docker",
+  "name": "CAP - MandE - AVD GH Containerlab-Docker-Ouside-Docker",
   "image": "ghcr.io/wdion-arista/ceos-act-projects/base:wdion_new_base",
   "runArgs": [
     "--network=host",
