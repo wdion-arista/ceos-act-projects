@@ -821,8 +821,8 @@ containerlab-destroy-clean: ## CONTAINERLAB - Destroy containerlab ceos locally
 		fi; \
 	done
 
-.PHONY: containerlab-get-image
-containerlab-get-image: ## CONTAINERLAB - Download and install cEOSarm image to docker(needs arista.com profile key)
+.PHONY: containerlab-get-image-arm
+containerlab-get-image-arm: ## CONTAINERLAB - Download and install cEOSarm image to docker(needs arista.com profile key)
 	@set -a; \
 	source $(ENV_FILE); \
 	IMAGE_REPO="arista/ceos"; \
@@ -839,6 +839,24 @@ containerlab-get-image: ## CONTAINERLAB - Download and install cEOSarm image to 
 		cd ..; \
 		rm -fr ceos_images; \
 	fi
+.PHONY: containerlab-get-image-amd64
+containerlab-get-image-amd64: ## CONTAINERLAB - Download and install cEOSarm image to docker(needs arista.com profile key)
+	@set -a; \
+	source $(ENV_FILE); \
+	IMAGE_REPO="arista/ceos"; \
+	IMAGE_NAME="$${IMAGE_REPO}:$${CEOS_ARM_IMAGE}"; \
+	if docker image inspect "$$IMAGE_NAME" >/dev/null 2>&1; then \
+		# If the command succeeds (exit code 0), the image exists; \
+		echo "Image $${IMAGE_NAME} already exists."; \
+		echo "Skipping download."; \
+	else \
+		echo "Downloading Image $${IMAGE_NAME}." \
+		mkdir ceos_images; \
+		cd ceos_images; \
+		ardl get eos --format cEOS64 --version $$CEOS_ARM_IMAGE --import-docker; \
+		cd ..; \
+		rm -fr ceos_images; \
+	fi	
 ################################################################################
 # AVD Commands
 ################################################################################
