@@ -8,7 +8,7 @@
     "--group-add=2020"
   ],
   "mounts": [
-    "source=/Users/${localEnv:USER}/.ssh,target=/home/avd/.ssh,type=bind",
+    "source=${localEnv:HOME}/.ssh,target=/home/avd/.ssh,type=bind",
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
     "type=bind,src=/run/docker/netns,dst=/run/docker/netns",
     "type=bind,src=/lib/modules,dst=/lib/modules"
