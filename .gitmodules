@@ -1,15 +1,6 @@
 [submodule "labs/wdion-l3l2-lab"]
 	path = labs/wdion-l3l2-lab
 	url = https://github.com/wdion-arista/wdion-l3l2-lab.git
-[submodule "labs/dome-truck"]
-	path = labs/dome-truck
-	url = https://github.com/wdion-arista/dome-truck.git
-[submodule "labs/production-data-centers-pod-main"]
-	path = labs/production-data-centers-pod-main
-	url = https://github.com/wdion-arista/gnb.git
-[submodule "labs/rbc-campus-lab"]
-	path = labs/rbc-campus-lab
-	url = git@gitlab.aristanetworks.com:rmohanta/rbc-campus-lab.git
 [submodule "labs/wrdion-servers"]
 	path = labs/wrdion-servers
 	url = https://github.com/wdion-arista/wrdion-servers.git
