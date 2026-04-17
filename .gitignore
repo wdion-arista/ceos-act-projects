@@ -24,5 +24,6 @@ common/playbooks/tls_certificates/
 *.code-workspace
 labs/*
 !labs/.gitkeep
+!labs/MandE
 core
 .env_GH
