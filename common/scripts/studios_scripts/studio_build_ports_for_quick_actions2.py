@@ -283,7 +283,9 @@ def main(args):
 
     sorted_devices = sorted(devices, key=lambda item: item['name'])
     inv_directory, inv_filename = os.path.split(f'{args.file_interface_studio_inputs}')
+    
     output_filename = f'{inv_directory}/studio_device_tags.yaml'
+    print(output_filename)
     with open(output_filename, 'w') as yaml_file:
         yaml.dump(sorted_devices, yaml_file, indent=2)
 
@@ -296,7 +298,7 @@ def main(args):
     port_array_log={'print':[],'error':[]}
     port_profiles = []
     for switchport in switch_port_data:
-        print(switchport['switch'],switchport['interface'])
+        print(switchport['switch'],switchport['interface'],"configured")
         deviceid = find_deviceid_concise(sorted_devices, switchport['switch'])
         interface_number = switchport['interface']
         found_campus_interface = find_item_by_tag(studio_input, f'interface:Ethernet{interface_number}@{deviceid}')
@@ -338,10 +340,20 @@ def main(args):
                     port_profiles.append(dev_port_profile)
                 else:
                     print(f"Skipped Profile: {dev_port_profile['profile']}")
+        else:
+            print(f'file not found: {structured_config_file}')
+    print('$$$$$$$$$$######################### Profile check:\n\n')
+    
+    known_profile_names = {pp['profile'] for pp in port_profiles}
+    # pprint.pprint(known_profile_names)
+    for switchport in switch_port_data:
+        tsv_profile = switchport.get('portProfile')
+        if tsv_profile and tsv_profile not in known_profile_names:
+            print(f"ERROR: Profile '{tsv_profile}' used in TSV (switch={switchport.get('switch')}, interface={switchport.get('interface')}) not found in port_profiles.", file=sys.stderr)
 
     print('$$$$$$$$$$#########################\n\n')
     pprint.pprint(port_profiles)
-    pprint.pprint(studio_input)
+    # pprint.pprint(studio_input)
     #pprint.pprint(studio_input['inputs'])
     # pprint.pprint(studio_input['inputs']['portProfiles'])
     if 'inputs' in studio_input:

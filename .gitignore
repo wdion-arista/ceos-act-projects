@@ -27,3 +27,4 @@ labs/*
 !labs/MandE
 core
 .env_GH
+*/flash/*

@@ -14,6 +14,12 @@ ENV_FILE:=.env
 # Calculate the number of elements in SITES
 NUM_SITES := $(words $(SITES))
 
+# Derive lab path components from pwd (e.g. labs/MandE) for remote SSH targeting
+LAB_NAME    := $(notdir $(HOME_DIR))
+LAB_PARENT  := $(notdir $(patsubst %/,%,$(dir $(abspath $(HOME_DIR)))))
+REPO_ROOT   := $(abspath $(HOME_DIR)/../..)
+REPO_NAME   := $(notdir $(REPO_ROOT))
+
 # This is lazy. Evaluated when used.
 ARISTA_AVD_DIR=$(shell ansible-galaxy collection list arista.avd --format yaml | head -1 | cut -d: -f1)
 
@@ -767,21 +773,32 @@ setup-bridge: ## CONTAINERLAB - Setup Dummy bridge
 	fi
 
 .PHONY: containerlab-deploy
-containerlab-deploy: ## CONTAINERLAB - Deploy containerlab ceos locally
+containerlab-deploy: ## CONTAINERLAB - Deploy containerlab ceos locally or on DOCKER_REMOTE_ADDRESS
 	$(MAKE) setup-bridge
 	@echo "This Makefile's command: $(SITES)"
 	-@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
 			set -a; \
 			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			REMOTE_BASE=$${DOCKER_REMOTE_REPOROOT:-~/repos/$(REPO_NAME)}; \
+			REMOTE_WORKDIR=$${DOCKER_REMOTE_WORKDIR:-$$REMOTE_BASE/$(LAB_PARENT)/$(LAB_NAME)}; \
 			echo "--- Entering $$dir ---"; \
-			cd "$(HOME_DIR)/$$dir/clab"; \
-			clab deploy $(ANSIBLE_ARGS); \
-			if [ -n "$$AUTO_DESTROY" ]; then \
-				echo "AUTO_DESTROY True!"; \
-				clab destroy $(ANSIBLE_ARGS); \
+			if [ -n "$$DOCKER_REMOTE_ADDRESS" ]; then \
+				echo "Running clab on remote: $$DOCKER_REMOTE_ADDRESS"; \
+				ssh $$DOCKER_REMOTE_ADDRESS "cd $$REMOTE_WORKDIR/$$dir/clab && clab deploy $(ANSIBLE_ARGS)"; \
+				if [ -n "$$AUTO_DESTROY" ]; then \
+					echo "AUTO_DESTROY True!"; \
+					ssh $$DOCKER_REMOTE_ADDRESS "cd $$REMOTE_WORKDIR/$$dir/clab && clab destroy $(ANSIBLE_ARGS)"; \
+				fi; \
 			else \
-				echo "AUTO_DESTROY False!"; \
+				cd "$(HOME_DIR)/$$dir/clab"; \
+				clab deploy $(ANSIBLE_ARGS); \
+				if [ -n "$$AUTO_DESTROY" ]; then \
+					echo "AUTO_DESTROY True!"; \
+					clab destroy $(ANSIBLE_ARGS); \
+				else \
+					echo "AUTO_DESTROY False!"; \
+				fi; \
 			fi; \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
@@ -790,36 +807,65 @@ containerlab-deploy: ## CONTAINERLAB - Deploy containerlab ceos locally
 	$(MAKE) clab-fqdn-add-host-file
 
 .PHONY: containerlab-destroy
-containerlab-destroy: ## CONTAINERLAB - Destroy containerlab ceos locally
+containerlab-destroy: ## CONTAINERLAB - Destroy containerlab ceos locally or on DOCKER_REMOTE_ADDRESS
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
 			set -a; \
 			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			REMOTE_WORKDIR=$${DOCKER_REMOTE_WORKDIR:-~/repos/ceos-act-projects}; \
 			echo "--- Entering $$dir ---"; \
-			cd "$(HOME_DIR)/$$dir/clab"; \
-			clab destroy $(ANSIBLE_ARGS); \
+			if [ -n "$$DOCKER_REMOTE_ADDRESS" ]; then \
+				echo "Running clab destroy on remote: $$DOCKER_REMOTE_ADDRESS"; \
+				ssh $$DOCKER_REMOTE_ADDRESS "cd $$REMOTE_WORKDIR/$$dir/clab && clab destroy $(ANSIBLE_ARGS)"; \
+			else \
+				cd "$(HOME_DIR)/$$dir/clab"; \
+				clab destroy $(ANSIBLE_ARGS); \
+			fi; \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
 		fi; \
 	done
 
 .PHONY: containerlab-destroy-clean
-containerlab-destroy-clean: ## CONTAINERLAB - Destroy containerlab ceos locally
+containerlab-destroy-clean: ## CONTAINERLAB - Destroy containerlab ceos locally or on DOCKER_REMOTE_ADDRESS
 
 	@echo "This Makefile's command: $(SITES)"
 	@for dir in $(SITES); do \
 		if [ -d "$(HOME_DIR)/$$dir" ]; then \
 			set -a; \
 			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			REMOTE_WORKDIR=$${DOCKER_REMOTE_WORKDIR:-~/repos/ceos-act-projects}; \
 			echo "--- Entering $$dir ---"; \
-			cd "$(HOME_DIR)/$$dir/clab"; \
-			clab destroy --cleanup $(ANSIBLE_ARGS); \
+			if [ -n "$$DOCKER_REMOTE_ADDRESS" ]; then \
+				echo "Running clab destroy --cleanup on remote: $$DOCKER_REMOTE_ADDRESS"; \
+				ssh $$DOCKER_REMOTE_ADDRESS "cd $$REMOTE_WORKDIR/$$dir/clab && clab destroy --cleanup $(ANSIBLE_ARGS)"; \
+			else \
+				cd "$(HOME_DIR)/$$dir/clab"; \
+				clab destroy --cleanup $(ANSIBLE_ARGS); \
+			fi; \
 		else \
 			echo "Warning: Directory '$$dir' not found. Skipping."; \
 		fi; \
 	done
+
+.PHONY: clab-webui
+clab-webui: ## CONTAINERLAB - Open web GUI (tunnels from DOCKER_REMOTE_ADDRESS if set, else local)
+	@set -a; source "$(HOME_DIR)/$(ENV_FILE)"; \
+	if [ -n "$$DOCKER_REMOTE_ADDRESS" ]; then \
+		echo "Tunneling Containerlab web UI from $$DOCKER_REMOTE_ADDRESS → http://localhost:50080"; \
+		echo "Press Ctrl+C to stop the tunnel."; \
+		ssh -L 50080:localhost:50080 -N $$DOCKER_REMOTE_ADDRESS; \
+	else \
+		echo "Opening local Containerlab web UI at http://localhost:50080"; \
+		for dir in $(SITES); do \
+			if [ -d "$(HOME_DIR)/$$dir/clab" ]; then \
+				cd "$(HOME_DIR)/$$dir/clab" && clab graph --srv :50080; \
+				break; \
+			fi; \
+		done; \
+	fi
 
 .PHONY: containerlab-get-image-arm
 containerlab-get-image-arm: ## CONTAINERLAB - Download and install cEOSarm image to docker(needs arista.com profile key)
@@ -1520,6 +1566,7 @@ prod-studios-build-quick-actions: ## STUDIOS - Build quick actions to lab using 
 			--server "$$CVAAS_SERVER_PROD" \
 			--token "$$CVAAS_TOKEN_PROD" \
 			--file-interface-tsv "$$dir/studios/studio-campus-ports.tsv" \
+			--avd-intended-directory "$$dir/intended/structured_configs" \
 			--file-interface-studio-inputs "$$dir/studios/prod/studio-campus-access-interfaces-inputs.yaml" \
 			--file-interface-studio-output "$$dir/studios/prod/studio-campus-access-interfaces-inputs-new.yaml" \
 			$(ANSIBLE_ARGS) ; \
@@ -1557,7 +1604,7 @@ prod-studios-interface-input-set: ## STUDIOS - Set Studios inputs (import) for C
 
 .PHONY: prod-studios-interfaces-tsv-update
 prod-studios-interfaces-tsv-update: ## STUDIOS - Build and update using tsv and make workspace.
-	$(MAKE) studios-interface-input-get-prod studios-build-quick-actions-prod studios-interface-input-set-prod
+	$(MAKE) prod-studios-interface-input-get prod-studios-build-quick-actions prod-studios-interface-input-set
 
 
 # WAN Stitching
