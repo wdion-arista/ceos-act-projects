@@ -20,13 +20,13 @@ jobs:
 
       - name: Pull latest image
         run: |
-          docker pull ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:latest
+          docker pull ghcr.io/${{ github.repository }}:latest
 
       - name: Tag image with release version
         run: |
-          docker tag ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:latest \
-            ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${{ github.event.release.tag_name }}
+          docker tag ghcr.io/${{ github.repository }}:latest \
+            ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
 
       - name: Push release tag
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${{ github.event.release.tag_name }}
+          docker push ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}

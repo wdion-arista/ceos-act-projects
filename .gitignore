@@ -28,3 +28,7 @@ labs/*
 core
 .env_GH
 */flash/*
+.devcontainer
+*.tgz
+*.gz
+*.zip
