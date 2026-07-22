@@ -9,7 +9,8 @@
       "CONTAINERWSF": "${containerWorkspaceFolder}",
       "GITHUB_REPOSITORY": "${localEnv:GITHUB_REPOSITORY}",
       "PASSWORD": "${localEnv:CODER_PASSWORD}",
-      "GIT_INIT": "false"
+      "GIT_INIT": "false",
+      "CODE_SERVER_BIND_ADDR": "0.0.0.0:8182"
   },
   "secrets": {
       "ARTOKEN": {

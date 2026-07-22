@@ -3,7 +3,7 @@ ansible-lint
 argcomplete
 pyinputplus
 git+https://github.com/wdion-arista/eos-downloader.git
-anta[cli]==1.4.0
+anta[cli]==1.8.0
 passlib
 ansible-pylibssh
 cloudvision==1.25.1
