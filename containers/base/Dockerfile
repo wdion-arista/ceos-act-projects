@@ -3,7 +3,7 @@
 # ARG ACLABS_VERSION="python3.12-avd-v5.7.2-clab0.73.0-rev2.100.4"
 # FROM ghcr.io/wdion-arista/aclabs/lab-base:${ACLABS_VERSION}
 
-
+# FROM aclabs direct
 ARG ACLABS_VERSION="python3.12-avd-v5.7.3-clab0.77.0-rev2.6.8"
 FROM ghcr.io/aristanetworks/aclabs/lab-base:${ACLABS_VERSION}
 ENV ACLABS_VERSION=${ACLABS_VERSION}
