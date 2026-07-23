@@ -24,35 +24,48 @@ jobs:
         include:
           - variant: base
             install_claude: "false"
+            aclabs_version: "python3.12-avd-v5.7.3-clab0.77.0-rev2.6.8"
+            avd_tag: "avd-v5.7.3"
+          - variant: base
+            install_claude: "false"
+            aclabs_version: "python3.12-avd-v6.1.0-clab0.77.0-rev2.6.8"
+            avd_tag: "avd-v6.1.0"
           - variant: base-ai
             install_claude: "true"
+            aclabs_version: "python3.12-avd-v5.7.3-clab0.77.0-rev2.6.8"
+            avd_tag: "avd-v5.7.3"
+          - variant: base-ai
+            install_claude: "true"
+            aclabs_version: "python3.12-avd-v6.1.0-clab0.77.0-rev2.6.8"
+            avd_tag: "avd-v6.1.0"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push (${{ matrix.variant }})
-        uses: docker/build-push-action@v5
+      - name: Build and push (${{ matrix.variant }} ${{ matrix.avd_tag }})
+        uses: docker/build-push-action@v6
         with:
           context: containers/base
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.ref_name }}
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-${{ github.ref_name }}
           build-args: |
             GH_USERNAME=${{ github.actor }}
             INSTALL_CLAUDE_CODE=${{ matrix.install_claude }}
+            ACLABS_VERSION=${{ matrix.aclabs_version }}
 
   # ------------------------------------------------------------------
   # MAIN JOB: merged to main — tagged latest
@@ -70,35 +83,48 @@ jobs:
         include:
           - variant: base
             install_claude: "false"
+            aclabs_version: "python3.12-avd-v5.7.3-clab0.77.0-rev2.6.8"
+            avd_tag: "avd-v5.7.3"
+          - variant: base
+            install_claude: "false"
+            aclabs_version: "python3.12-avd-v6.1.0-clab0.77.0-rev2.6.8"
+            avd_tag: "avd-v6.1.0"
           - variant: base-ai
             install_claude: "true"
+            aclabs_version: "python3.12-avd-v5.7.3-clab0.77.0-rev2.6.8"
+            avd_tag: "avd-v5.7.3"
+          - variant: base-ai
+            install_claude: "true"
+            aclabs_version: "python3.12-avd-v6.1.0-clab0.77.0-rev2.6.8"
+            avd_tag: "avd-v6.1.0"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push (${{ matrix.variant }})
-        uses: docker/build-push-action@v5
+      - name: Build and push (${{ matrix.variant }} ${{ matrix.avd_tag }})
+        uses: docker/build-push-action@v6
         with:
           context: containers/base
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-latest
           build-args: |
             GH_USERNAME=${{ github.actor }}
             INSTALL_CLAUDE_CODE=${{ matrix.install_claude }}
+            ACLABS_VERSION=${{ matrix.aclabs_version }}
 
   # ------------------------------------------------------------------
   # RELEASE JOB: GitHub release published — retag latest with version
@@ -111,22 +137,67 @@ jobs:
       packages: write
     strategy:
       matrix:
-        variant: [base, base-ai]
+        include:
+          - variant: base
+            avd_tag: "avd-v5.7.3"
+          - variant: base
+            avd_tag: "avd-v6.1.0"
+          - variant: base-ai
+            avd_tag: "avd-v5.7.3"
+          - variant: base-ai
+            avd_tag: "avd-v6.1.0"
     steps:
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull latest (${{ matrix.variant }})
-        run: docker pull ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest
+      - name: Pull latest (${{ matrix.variant }} ${{ matrix.avd_tag }})
+        run: docker pull ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-latest
 
-      - name: Tag with release version (${{ matrix.variant }})
+      - name: Tag with release version (${{ matrix.variant }} ${{ matrix.avd_tag }})
         run: |
-          docker tag ghcr.io/${{ github.repository }}/${{ matrix.variant }}:latest \
-            ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.event.release.tag_name }}
+          docker tag ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-latest \
+            ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-${{ github.event.release.tag_name }}
 
-      - name: Push release tag (${{ matrix.variant }})
-        run: docker push ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ github.event.release.tag_name }}
+      - name: Push release tag (${{ matrix.variant }} ${{ matrix.avd_tag }})
+        run: docker push ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-${{ github.event.release.tag_name }}
+
+  # ------------------------------------------------------------------
+  # SUMMARY JOB: list all packages built
+  # ------------------------------------------------------------------
+  summary:
+    if: always()
+    needs: [build-and-push-dev, build-and-push-main, tag-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build summary
+        env:
+          REPO: ghcr.io/${{ github.repository }}
+        run: |
+          VARIANTS=("base" "base-ai")
+          AVD_TAGS=("avd-v5.7.3" "avd-v6.1.0")
+
+          echo "## 📦 Container Images Built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Variant | AVD Version | Image Tag |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------------|-----------|" >> $GITHUB_STEP_SUMMARY
+
+          for variant in "${VARIANTS[@]}"; do
+            for avd in "${AVD_TAGS[@]}"; do
+              if [ "${{ github.event_name }}" = "release" ]; then
+                tag="${avd}-${{ github.event.release.tag_name }}"
+              elif [ "${{ github.ref_name }}" = "main" ]; then
+                tag="${avd}-latest"
+              else
+                tag="${avd}-${{ github.ref_name }}"
+              fi
+              echo "| \`${variant}\` | \`${avd}\` | \`${REPO}/${variant}:${tag}\` |" >> $GITHUB_STEP_SUMMARY
+            done
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** \`${{ github.event_name }}\` on \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms:** \`linux/amd64\`, \`linux/arm64\`" >> $GITHUB_STEP_SUMMARY

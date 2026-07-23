@@ -2,8 +2,8 @@
   "name": "CAP - MandE - AVD GH Containerlab-Docker-Outside-Docker (AI)",
   // echo "YOUR_PAT_TOKEN" | sudo docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
   // "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:wdion_new_base",
-  // "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:wdion_container_update2",
-  "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:v1.1.2",
+  "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:wdion_aclab_direct",
+  // "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:v1.1.2",
   "containerEnv": {
       "ARISTA_TOKEN": "${localEnv:ARTOKEN}",
       "CEOS_LAB_VERSION": "4.36.0F",
