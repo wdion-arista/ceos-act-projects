@@ -6,6 +6,7 @@ on:
       - '**'
     paths:
       - 'containers/base/**'
+      - '.github/workflows/containers-base-publish.yml'
   release:
     types: [published]
 
