@@ -39,11 +39,11 @@
     - name: Parsing CVaaS token
       tags: [build]
       ansible.builtin.set_fact:
-        cv_onboarding_token_canada: "{{ cv_onboarding_token_canada.content | list | join }}"
+        cv_onboarding_token_parsed: "{{ cv_onboarding_token_canada.content | from_json }}"
     - name: Writing CVaaS token to file
       tags: [build]
       ansible.builtin.copy:
-        content: "{{ cv_onboarding_token_canada[0].enrollmentToken.token }}"
+        content: "{{ cv_onboarding_token_parsed[0].enrollmentToken.token }}"
         dest: "./cvaas-token.tok"
         mode: u=rw,g=r,o=r
 

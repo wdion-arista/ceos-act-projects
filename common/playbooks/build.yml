@@ -28,7 +28,8 @@
       vars:
         eos_designs_documentation:
           enable: true
-        avd_eos_designs_debug: true
+        # avd_eos_designs_debug: true  # AVD 5.7.2 - dump vars/facts per device
+        # eos_designs_keep_tmp_files: true  # AVD 6.x - keep temporary structured config files
 
     - name: Generate device intended config and documentation
       ansible.builtin.import_role:
