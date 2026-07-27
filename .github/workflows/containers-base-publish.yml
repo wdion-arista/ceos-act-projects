@@ -128,9 +128,9 @@ jobs:
             ACLABS_VERSION=${{ matrix.aclabs_version }}
 
   # ------------------------------------------------------------------
-  # RELEASE JOB: GitHub release published — build and tag with version
+  # RELEASE JOB: GitHub release published — wait for latest, then retag
   # ------------------------------------------------------------------
-  build-and-push-release:
+  tag-release:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
@@ -140,31 +140,14 @@ jobs:
       matrix:
         include:
           - variant: base
-            install_claude: "false"
-            aclabs_version: "python3.12-avd-v5.7.3-clab0.77.0-rev2.6.8"
             avd_tag: "avd-v5.7.3"
           - variant: base
-            install_claude: "false"
-            aclabs_version: "python3.12-avd-v6.1.0-clab0.77.0-rev2.6.8"
             avd_tag: "avd-v6.1.0"
           - variant: base-ai
-            install_claude: "true"
-            aclabs_version: "python3.12-avd-v5.7.3-clab0.77.0-rev2.6.8"
             avd_tag: "avd-v5.7.3"
           - variant: base-ai
-            install_claude: "true"
-            aclabs_version: "python3.12-avd-v6.1.0-clab0.77.0-rev2.6.8"
             avd_tag: "avd-v6.1.0"
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -172,26 +155,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push (${{ matrix.variant }} ${{ matrix.avd_tag }})
-        uses: docker/build-push-action@v7
-        with:
-          context: containers/base
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-latest
+      - name: Wait for and pull latest (${{ matrix.variant }} ${{ matrix.avd_tag }})
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-latest"
+          for i in $(seq 1 30); do
+            echo "Attempt $i/30: pulling $IMAGE"
+            if docker pull "$IMAGE" 2>/dev/null; then
+              echo "Successfully pulled $IMAGE"
+              exit 0
+            fi
+            echo "Not available yet, waiting 30s..."
+            sleep 30
+          done
+          echo "::error::Timed out waiting for $IMAGE after 15 minutes"
+          exit 1
+
+      - name: Tag with release version (${{ matrix.variant }} ${{ matrix.avd_tag }})
+        run: |
+          docker tag ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-latest \
             ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-${{ github.event.release.tag_name }}
-          build-args: |
-            GH_USERNAME=${{ github.actor }}
-            INSTALL_CLAUDE_CODE=${{ matrix.install_claude }}
-            ACLABS_VERSION=${{ matrix.aclabs_version }}
+
+      - name: Push release tag (${{ matrix.variant }} ${{ matrix.avd_tag }})
+        run: docker push ghcr.io/${{ github.repository }}/${{ matrix.variant }}:${{ matrix.avd_tag }}-${{ github.event.release.tag_name }}
 
   # ------------------------------------------------------------------
   # SUMMARY JOB: list all packages built
   # ------------------------------------------------------------------
   summary:
     if: always()
-    needs: [build-and-push-dev, build-and-push-main, build-and-push-release]
+    needs: [build-and-push-dev, build-and-push-main, tag-release]
     runs-on: ubuntu-latest
     steps:
       - name: Build summary
