@@ -24,5 +24,5 @@
 
         # Set the template to be used to generate the configlet names in CloudVision Static Config Studio.
         cv_configlet_name_template: "AVD-${hostname}"
-        cv_verify_certs: false
+        # cv_verify_certs: false
         verify_devices_on_cv: false
