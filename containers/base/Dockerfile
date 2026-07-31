@@ -50,6 +50,8 @@ RUN if [ "$INSTALL_CLAUDE_CODE" = "true" ]; then \
     fi
 ENV PATH="/home/avd/.npm-global/bin:${PATH}"
 
+RUN groupadd -f clab_admins && usermod -aG clab_admins,docker avd
+
 RUN echo -e "\nexport PATH=\$PATH:/home/avd/.local/bin" >> /home/avd/.bashrc
 RUN echo -e "\n\
 ceoscli() {\n\
