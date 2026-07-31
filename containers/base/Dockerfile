@@ -42,7 +42,9 @@ RUN apt-get update && \
 # Optional: Claude Code — pass --build-arg INSTALL_CLAUDE_CODE=true to enable
 ARG INSTALL_CLAUDE_CODE=false
 RUN if [ "$INSTALL_CLAUDE_CODE" = "true" ]; then \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" > /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/* && \
     npm config set prefix '/home/avd/.npm-global' && \
