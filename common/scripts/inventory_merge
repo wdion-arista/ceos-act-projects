@@ -1,37 +1,34 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 
+import argparse
 import os
 import yaml
 
-def merge_yaml_files(base_path, output_file_name):
+def merge_yaml_files(base_path, target_file, output_file_name):
     """
-    Finds and merges all 'inventory-act.yml' files within subdirectories
+    Finds and merges all target inventory files within subdirectories
     of a specified base path into a single YAML file.
-
-    Args:
-        base_path (str): The root directory to search for 'sites' and its subfolders.
-        output_file_name (str): The name of the file to save the merged content.
     """
     merged_data = {}
-    target_file = 'inventory-act.yml'
-    
-    # Use os.walk to traverse the directory tree
+
     for dirpath, dirnames, filenames in os.walk(base_path):
         if target_file in filenames:
             file_path = os.path.join(dirpath, target_file)
             print(f"Reading file: {file_path}")
-            
+
             try:
                 with open(file_path, 'r') as f:
-                    # Load the YAML content from the file
                     current_data = yaml.safe_load(f)
-                    # Recursively merge the new data into our main dictionary
                     _deep_merge(merged_data, current_data)
             except Exception as e:
                 print(f"Error processing {file_path}: {e}")
 
-    # Write the final merged data to the output file
+    output_dir = os.path.dirname(output_file_name)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"Created directory: {output_dir}")
+
     try:
         with open(output_file_name, 'w') as f:
             yaml.dump(merged_data, f, default_flow_style=False)
@@ -40,22 +37,20 @@ def merge_yaml_files(base_path, output_file_name):
         print(f"Error writing to {output_file_name}: {e}")
 
 def _deep_merge(dict1, dict2):
-    """
-    Recursively merges the contents of dict2 into dict1.
-    Handles nested dictionaries correctly without overwriting.
-    """
     for key, value in dict2.items():
-        # If the key exists in both and both are dictionaries, recurse
         if key in dict1 and isinstance(dict1[key], dict) and isinstance(value, dict):
             _deep_merge(dict1[key], value)
         else:
-            # Otherwise, just assign the value from the second dictionary
             dict1[key] = value
 
 if __name__ == "__main__":
-    # The starting directory. Assumes the script is run from the same location as the 'sites' folder.
-    start_directory = 'sites'
-    # The desired name for the final merged YAML file.
-    output_filename = 'wan/merged_inventory.yml'
+    parser = argparse.ArgumentParser(description="Merge inventory YAML files across sites")
+    parser.add_argument("--target-file", default="inventory-act.yml",
+                        help="Inventory filename to search for (default: inventory-act.yml)")
+    parser.add_argument("--output", default="wan/act_merged_inventory.yml",
+                        help="Output merged file path (default: wan/act_merged_inventory.yml)")
+    parser.add_argument("--start-dir", default="sites",
+                        help="Root directory to search (default: sites)")
+    args = parser.parse_args()
 
-    merge_yaml_files(start_directory, output_filename)
+    merge_yaml_files(args.start_dir, args.target_file, args.output)

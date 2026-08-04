@@ -10,3 +10,6 @@
 [submodule "labs/MandE"]
 	path = labs/MandE
 	url = https://github.com/wdion-arista/MandE.git
+[submodule "common/scripts/pwcrypt"]
+	path = common/scripts/pwcrypt
+	url = https://gitlab.com/ddella/pwcrypt.git

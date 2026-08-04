@@ -39,15 +39,18 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Optional: Claude Code — pass --build-arg INSTALL_CLAUDE_CODE=true to enable
+# Optional: AI coding tools — pass --build-arg INSTALL_AI_TOOLS=true to enable
+# Installs Node.js, Claude Code, OpenAI Codex CLI, and Google Gemini CLI
+ARG INSTALL_AI_TOOLS=false
 ARG INSTALL_CLAUDE_CODE=false
 ARG NODE_VERSION=v22.23.2
-RUN if [ "$INSTALL_CLAUDE_CODE" = "true" ]; then \
+RUN if [ "$INSTALL_AI_TOOLS" = "true" ] || [ "$INSTALL_CLAUDE_CODE" = "true" ]; then \
     ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then NODE_ARCH="x64"; else NODE_ARCH="$ARCH"; fi && \
     curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" | tar -xJ -C /usr/local --strip-components=1 && \
-    npm config set prefix '/home/avd/.npm-global' && \
-    npm install -g @anthropic-ai/claude-code; \
+    mkdir -p /home/avd/.npm-global && \
+    chown avd:avd /home/avd/.npm-global && \
+    npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli; \
     fi
 ENV PATH="/home/avd/.npm-global/bin:${PATH}"
 
@@ -80,6 +83,7 @@ remove_dangling_images() {\n\
 }" >> /home/avd/.bashrc
 
 USER avd
+RUN npm config set prefix '/home/avd/.npm-global' 2>/dev/null || true
 RUN pip install --upgrade pip
 ENV PATH="/home/avd/.local/bin:${PATH}"
 
