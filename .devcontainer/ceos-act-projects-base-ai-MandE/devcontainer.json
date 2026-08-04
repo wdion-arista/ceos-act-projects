@@ -2,8 +2,9 @@
   "name": "CAP - MandE - AVD GH Containerlab-Docker-Outside-Docker (AI)",
   // echo "YOUR_PAT_TOKEN" | sudo docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
   // "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:wdion_new_base",
-  "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:avd-v6.1.0-v1.1.3",
+  "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:avd-v6.1.0-wdion_add-clab-admins-group",
   // "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:v1.1.2",
+  "workspaceFolder": "${localWorkspaceFolder}/labs/MandE",  
   "containerEnv": {
       "ARISTA_TOKEN": "${localEnv:ARTOKEN}",
       "CEOS_LAB_VERSION": "4.36.0F",
@@ -13,7 +14,8 @@
       "GITHUB_REPOSITORY": "${localEnv:GITHUB_REPOSITORY}",
       "PASSWORD": "${localEnv:CODER_PASSWORD}",
       "GIT_INIT": "false",
-      "CODE_SERVER_BIND_ADDR": "0.0.0.0:8182"
+      "CODE_SERVER_BIND_ADDR": "0.0.0.0:8182",
+      "PROJECT": "MandE"
   },
   "secrets": {
       "ARTOKEN": {
@@ -34,17 +36,19 @@
     "type=bind,src=/lib/modules,dst=/lib/modules",
     "source=${localEnv:HOME}/bin,target=/home/avd/bin,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.ai-proxy-api-key,target=/home/avd/.ai-proxy-api-key,type=bind,readonly",
-    "source=${localEnv:HOME}/.claude,target=/home/avd/.claude,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.claude,target=/home/avd/.claude,type=bind,consistency=cached",
     // "source=claude-native,target=/home/avd/.local/share/claude,type=volume"
+    "source=${localWorkspaceFolder}/.claude/skills,target=${localWorkspaceFolder}/labs/MandE/.claude/skills,type=bind,readonly",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/avd/.gitconfig,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/gh,target=/home/avd/.config/gh,type=bind,consistency=cached"
   ],
-  "postStartCommand": "sudo chmod 666 /var/run/docker.sock && sudo chown -R avd:avd /home/avd/.local/share/claude",
-  "postCreateCommand": "bash ${localWorkspaceFolder}/containers/base/endpoint.sh",
+  "postStartCommand": "getent group 2020 >/dev/null 2>&1 || sudo groupadd -g 2020 docker_host 2>/dev/null || true; sudo chmod 666 /var/run/docker.sock && sudo chown -R avd:avd /home/avd/.local/share/claude",
+  "postCreateCommand": "sudo groupadd -g 2020 docker_host 2>/dev/null || true; bash ${localWorkspaceFolder}/containers/base/endpoint.sh",
   "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind",
-  "workspaceFolder": "${localWorkspaceFolder}/labs/MandE",
   "customizations": {
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "/usr/bin/python3"
+        "python.defaultInterpreterPath": "/usr/local/bin/python3"
       },
       "extensions": [
         "srl-labs.vscode-containerlab",

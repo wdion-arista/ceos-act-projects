@@ -558,13 +558,29 @@ act-internet-server-setup: ## ACT - Run setup for internet servers
 		fi; \
 	done
 
+.PHONY: clab-server-setup
+clab-server-setup: ## CLAB - Run setup for all servers (IP, routes, NAT for internet servers)
+	@echo "This Makefile's command: $(SITES)"
+	@for dir in $(SITES); do \
+		if [ -d "$$dir" ]; then \
+			echo "--- Entering $$dir ---"; \
+			set -a; \
+			source $(ENV_FILE); \
+			TARGET_SITE_RAW=$$(basename "$$dir"); \
+			ansible-playbook $(COMMON_PATH)/playbooks/clab-server-setup.yml -i "$$dir/inventory-containerlab.yml" \
+			$(ANSIBLE_ARGS) ; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+
 .PHONY: act-connections
 act-connections: ## ACT - Build config for ACT custom connections.
 	@echo "This Makefile's command: $(SITES)"
 	@set -a; \
 	source $(ENV_FILE); \
 	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
-	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/merged_inventory.yml" \
+	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/act_merged_inventory.yml" \
 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 	-e "act_build=true" \
 	--diff \
@@ -576,7 +592,7 @@ act-connections-ping: ## ACT - Ping act devices.
 	@set -a; \
 	source $(ENV_FILE); \
 	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
-	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/merged_inventory.yml" \
+	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/act_merged_inventory.yml" \
 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 	-e "act_deploy=true" \
 	--tags ping \
@@ -590,7 +606,7 @@ act-connections-deploy: ## ACT - Deploy ACT custom connections on running device
 	@set -a; \
 	source $(ENV_FILE); \
 	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
-	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/merged_inventory.yml" \
+	ansible-playbook $(COMMON_PATH)/playbooks/act-connections.yml -i "wan/act_merged_inventory.yml" \
 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 	-e "act_deploy=true" \
 	--diff \
@@ -1271,16 +1287,40 @@ util-purge-site-configs: ## UTILS - Remove all the sites configs except inventor
 	done
 
 .PHONY: act-wan-inventory-merge
-act-wan-inventory-merge: ## ACT - Merge all ACT inventory sites connecitons files into wan folder
+act-wan-inventory-merge: ## ACT - Merge all ACT inventory sites connections files into wan folder
 
 	@echo "This Makefile's command: $(SITES)"
 	@python3 $(COMMON_PATH)/scripts/inventory_merge
 
 .PHONY: act-wan-build-merge
-act-wan-build-merge: ## ACT - Connecitons build and merge files
+act-wan-build-merge: ## ACT - Connections build and merge files
 
 	@echo "This Makefile's command: $(SITES)"
 	@python3 $(COMMON_PATH)/scripts/act_build_merge
+
+.PHONY: clab-wan-inventory-merge
+clab-wan-inventory-merge: ## CLAB - Merge all CLAB inventory sites connections files into wan folder
+
+	@echo "This Makefile's command: $(SITES)"
+	@python3 $(COMMON_PATH)/scripts/inventory_merge --target-file inventory-containerlab.yml --output wan/clab_merged_inventory.yml
+
+.PHONY: clab-wan-build-merge
+clab-wan-build-merge: ## CLAB - Connections build and merge files
+
+	@echo "This Makefile's command: $(SITES)"
+	@python3 $(COMMON_PATH)/scripts/act_build_merge --subdir clab --output wan/clab_build.merged.yml
+
+.PHONY: prod-wan-inventory-merge
+prod-wan-inventory-merge: ## PROD - Merge all PROD inventory sites connections files into wan folder
+
+	@echo "This Makefile's command: $(SITES)"
+	@python3 $(COMMON_PATH)/scripts/inventory_merge --target-file inventory.yml --output wan/prod_merged_inventory.yml
+
+.PHONY: prod-wan-build-merge
+prod-wan-build-merge: ## PROD - Connections build and merge files
+
+	@echo "This Makefile's command: $(SITES)"
+	@python3 $(COMMON_PATH)/scripts/act_build_merge --subdir intended --output wan/prod_build.merged.yml
 
 ### Studios
 
@@ -1609,8 +1649,8 @@ prod-studios-interfaces-tsv-update: ## STUDIOS - Build and update using tsv and 
 
 # WAN Stitching
 
-.PHONY: act-build-wan
-act-build-wan: ## ACT - BETA Build WAN configuration. Single site or list: SITES="sites/site1" make build 
+.PHONY: act-wan-build
+act-wan-build: ## ACT - BETA Build WAN configuration
 
 	@echo "This Makefile's command: $(SITES)"
 	TARGET_SITE_RAW=$$(basename "wan"); \
@@ -1618,13 +1658,44 @@ act-build-wan: ## ACT - BETA Build WAN configuration. Single site or list: SITES
 	FABRIC="ACT_CUSTOM_CONNECTIONS"; \
 	ANSIBLE_TARGET_HOSTS="ACT_CUSTOM_CONNECTIONS"; \
 	echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
-	ansible-playbook $(COMMON_PATH)/playbooks/build.yml -i "$$dir/merged_inventory.yml" \
+	ansible-playbook $(COMMON_PATH)/playbooks/build.yml -i "wan/act_merged_inventory.yml" \
 	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
 	-e "fabric_name=$$FABRIC" \
 	-e "global_vars_on=False" \
 	-vvv \
 	$(ANSIBLE_ARGS) ; \
-	
+
+.PHONY: clab-wan-build
+clab-wan-build: ## CLAB - BETA Build WAN configuration
+
+	@echo "This Makefile's command: $(SITES)"
+	TARGET_SITE_RAW=$$(basename "wan"); \
+	dir="wan"; \
+	FABRIC="CLAB_CUSTOM_CONNECTIONS"; \
+	ANSIBLE_TARGET_HOSTS="CLAB_CUSTOM_CONNECTIONS"; \
+	echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+	ansible-playbook $(COMMON_PATH)/playbooks/build.yml -i "wan/clab_merged_inventory.yml" \
+	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+	-e "fabric_name=$$FABRIC" \
+	-e "global_vars_on=False" \
+	-vvv \
+	$(ANSIBLE_ARGS) ; \
+
+.PHONY: prod-wan-build
+prod-wan-build: ## PROD - BETA Build WAN configuration
+
+	@echo "This Makefile's command: $(SITES)"
+	TARGET_SITE_RAW=$$(basename "wan"); \
+	dir="wan"; \
+	FABRIC="PROD_CUSTOM_CONNECTIONS"; \
+	ANSIBLE_TARGET_HOSTS="PROD_CUSTOM_CONNECTIONS"; \
+	echo "FABRIC NAME: $$ANSIBLE_TARGET_HOSTS"; \
+	ansible-playbook $(COMMON_PATH)/playbooks/build.yml -i "wan/prod_merged_inventory.yml" \
+	-e "target_hosts=$$ANSIBLE_TARGET_HOSTS" \
+	-e "fabric_name=$$FABRIC" \
+	-e "global_vars_on=False" \
+	-vvv \
+	$(ANSIBLE_ARGS) ; \
 
 ##### AGNI
 

@@ -64,12 +64,13 @@ def update_ansible_inventory_ips(source_inventory_path, clab_inventory_path, out
         modified_inventory = copy.deepcopy(source_inventory)
 
         clab_ip_map = {}
-        arista_ceos_hosts = clab_inventory.get('all', {}).get('children', {}).get('arista_ceos', {}).get('hosts', {})
-
-        for clab_hostname, host_data in arista_ceos_hosts.items():
-            if 'ansible_host' in host_data:
-                stripped_hostname = clab_hostname.replace(f'clab-{project_name}-', '')
-                clab_ip_map[stripped_hostname] = host_data['ansible_host']
+        clab_children = clab_inventory.get('all', {}).get('children', {})
+        for group_name, group_data in clab_children.items():
+            group_hosts = group_data.get('hosts', {}) if isinstance(group_data, dict) else {}
+            for clab_hostname, host_data in group_hosts.items():
+                if 'ansible_host' in host_data:
+                    stripped_hostname = clab_hostname.replace(f'clab-{project_name}-', '')
+                    clab_ip_map[stripped_hostname] = host_data['ansible_host']
         print(f"Extracted {len(clab_ip_map)} IP mappings from clab inventory.")
         print(f"CLAB IP Map: {clab_ip_map}")
 
@@ -101,31 +102,46 @@ def update_ansible_inventory_ips(source_inventory_path, clab_inventory_path, out
             print(f"Warning: '{fabric_name}' section or its children not found in source inventory. No IPs will be updated.")
             return
 
+        def _update_hosts_in_group(group_data, clab_ip_map, indent="    "):
+            """Update ansible_host IPs for all hosts in a group dict."""
+            count = 0
+            if not isinstance(group_data, dict) or 'hosts' not in group_data:
+                return 0
+            for hostname, host_vars in group_data['hosts'].items():
+                if host_vars is None:
+                    group_data['hosts'][hostname] = {}
+                    host_vars = group_data['hosts'][hostname]
+                if hostname in clab_ip_map:
+                    old_ip = host_vars.get('ansible_host', 'N/A')
+                    new_ip = clab_ip_map[hostname]
+                    host_vars['ansible_host'] = new_ip
+                    host_vars.pop('clab_mgmt_ip', None)
+                    host_vars.pop('act_mgmt_ip', None)
+                    if old_ip == 'N/A':
+                        print(f"{indent}Added {hostname}: {new_ip}")
+                    else:
+                        print(f"{indent}Updated {hostname}: {old_ip} -> {new_ip}")
+                    count += 1
+                else:
+                    print(f"{indent}Skipping {hostname}: No matching IP found in clab inventory.")
+            return count
+
         if inventory_type == 'default':
             print(f"Processing '{fabric_name}' with 'default' inventory structure...")
             for group_name, group_data in main_fabric_group['children'].items():
                 if isinstance(group_data, dict) and 'hosts' in group_data:
                     print(f"  Checking group: {group_name}")
-                    for hostname, host_vars in group_data['hosts'].items():
-                        if host_vars is None:
-                            group_data['hosts'][hostname] = {}
-                            host_vars = group_data['hosts'][hostname]
-
-                        if hostname in clab_ip_map:
-                            old_ip = host_vars.get('ansible_host', 'N/A')
-                            new_ip = clab_ip_map[hostname]
-                            host_vars['ansible_host'] = new_ip
-                            host_vars.pop('clab_mgmt_ip',None)
-                            host_vars.pop('act_mgmt_ip',None)
-                            if old_ip == 'N/A':
-                                print(f"    Added {hostname}: {new_ip}")
-                            else:
-                                print(f"    Updated {hostname}: {old_ip} -> {new_ip}")
-                            updated_count += 1
+                    updated_count += _update_hosts_in_group(group_data, clab_ip_map)
+                elif isinstance(group_data, dict) and 'children' in group_data:
+                    print(f"  Checking group: {group_name}")
+                    for sub_group_name, sub_group_data in group_data['children'].items():
+                        if isinstance(sub_group_data, dict) and 'hosts' in sub_group_data:
+                            print(f"    Checking sub-group: {sub_group_name}")
+                            updated_count += _update_hosts_in_group(sub_group_data, clab_ip_map, indent="      ")
                         else:
-                            print(f"    Skipping {hostname}: No matching IP found in clab inventory.")
+                            print(f"    Skipping sub-group '{sub_group_name}': No 'hosts' found or not a dictionary.")
                 else:
-                    print(f"  Skipping group '{group_name}': No 'hosts' found or not a dictionary.")
+                    print(f"  Skipping group '{group_name}': No 'hosts' or 'children' found.")
 
         elif inventory_type == 'sub_groups':
             print(f"Processing '{fabric_name}' with 'sub_groups' inventory structure...")
@@ -165,11 +181,21 @@ def update_ansible_inventory_ips(source_inventory_path, clab_inventory_path, out
 
         print(f"Total IPs updated in '{fabric_name}' section: {updated_count}")
 
+        print("Checking TOOLS section...")
+        tools_children = modified_inventory.get('all', {}).get('children', {}).get('TOOLS', {}).get('children', {})
+        if tools_children:
+            for tools_group_name, tools_group_data in tools_children.items():
+                if isinstance(tools_group_data, dict) and 'hosts' in tools_group_data:
+                    print(f"  Checking group: {tools_group_name}")
+                    updated_count += _update_hosts_in_group(tools_group_data, clab_ip_map)
+
+        print(f"Total IPs updated: {updated_count}")
+
         with open(output_inventory_path, 'w') as f:
             yaml.dump(modified_inventory, f)
         print(f"Modified inventory saved to: {output_inventory_path}")
         return True
-    
+
     except FileNotFoundError as e:
         print(f"Error: One of the inventory files not found. Please check paths. Did you run the container lab at least once? \n{e}")
     except ruamel.yaml.YAMLError as e:

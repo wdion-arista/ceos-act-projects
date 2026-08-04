@@ -1,0 +1,87 @@
+---
+- name: Setup Servers (Containerlab)
+  hosts: SERVERS
+  become: true
+  gather_facts: true
+
+  tasks:
+
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - iputils-ping
+          - iperf3
+          - lldpd
+        state: present
+      when: inband_ip is defined
+
+    - name: Install iptables-persistent
+      ansible.builtin.apt:
+        name:
+          - iptables-persistent
+        state: present
+      when: enable_nat | default(false)
+
+    - name: Enable ip_forward
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: true
+        state: present
+        reload: true
+      when: enable_nat | default(false)
+
+    - name: Check for existing IP on eth1
+      ansible.builtin.command:
+        cmd: ip addr show dev eth1
+      register: ip_addr_output
+      changed_when: false
+      when: inband_ip is defined
+
+    - name: Set IP address on eth1
+      ansible.builtin.command:
+        cmd: ip addr add {{ inband_ip }} dev eth1
+      when:
+        - inband_ip is defined
+        - inband_ip | regex_replace('/.*', '') not in ip_addr_output.stdout
+      register: ip_set_result
+      changed_when: ip_set_result.rc == 0
+      failed_when: "ip_set_result.rc != 0 and 'RTNETLINK answers: File exists' not in ip_set_result.stderr"
+
+    - name: Check existing routes
+      ansible.builtin.command:
+        cmd: ip route show {{ item.route }}
+      register: route_check
+      changed_when: false
+      ignore_errors: true
+      loop: "{{ routes | default([]) }}"
+      loop_control:
+        label: "{{ item.route }}"
+
+    - name: Add routes
+      ansible.builtin.command:
+        cmd: ip route add {{ item.item.route }} via {{ item.item.gw }} dev eth1
+      loop: "{{ route_check.results | default([]) }}"
+      when: item.stdout == ""
+      loop_control:
+        label: "{{ item.item.route }}"
+
+    - name: Get current iptables rules
+      ansible.builtin.shell:
+        cmd: iptables-save
+      register: iptables_rules
+      changed_when: false
+      ignore_errors: true
+      when: enable_nat | default(false)
+
+    - name: Setup iptables forwarding
+      ansible.builtin.shell:
+        cmd: |
+          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          iptables -A FORWARD -i eth1 -o eth0 -j ACCEPT
+          iptables -A FORWARD -i eth0 -o eth1 -m state --state RELATED,ESTABLISHED -j ACCEPT
+          netfilter-persistent save
+      when:
+        - enable_nat | default(false)
+        - "'-A FORWARD -i eth1 -o eth0 -j ACCEPT' not in (iptables_rules.stdout | default(''))"
+      ignore_errors: true
