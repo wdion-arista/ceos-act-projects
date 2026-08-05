@@ -1,6 +1,6 @@
 # ceos-act-projects
 
-This project wraps the [wdion-arista/aclabs](https://github.com/wdion-arista/aclabs.git) base container image (a fork of the original aristanetworks/aclabs) with a structured command and lab deployment environment for managing customer AVD (Arista Validated Designs) deployments.
+This project wraps the [aristanetworks/aclabs](https://github.com/aristanetworks/aclabs) base container image with a structured command and lab deployment environment for managing customer AVD (Arista Validated Designs) deployments.
 
 ## Project Structure
 
@@ -24,4 +24,4 @@ VSCode devcontainer configurations for different environments (ACLABS, AVD versi
 - `.env_GH` — GitHub-specific credentials. Never committed.
 
 ## Container Design
-The container image is built from `containers/base/Dockerfile`, which extends `ghcr.io/wdion-arista/aclabs/lab-base` (the fork of aristanetworks/aclabs). At runtime, `common/` and `labs/` are bind-mounted into `/workspace/`. Labs are isolated per-customer repos and are never tracked by this parent repo. The `.devcontainer/clab-dood-avd-aclabs/` config will eventually reference `containers/base/` instead of maintaining its own copy of these files.
+The container image is built from `containers/base/Dockerfile`, which extends `ghcr.io/aristanetworks/aclabs/lab-base`. At runtime, `common/` and `labs/` are bind-mounted into `/workspace/`. Labs are isolated per-customer repos and are never tracked by this parent repo. The `.devcontainer/clab-dood-avd-aclabs/` config will eventually reference `containers/base/` instead of maintaining its own copy of these files.
