@@ -24,6 +24,7 @@
       }
   },  
   "runArgs": [
+    "--name", "cap-MandE-ai",
     "--network=host",
     "--pid=host",
     "--privileged",

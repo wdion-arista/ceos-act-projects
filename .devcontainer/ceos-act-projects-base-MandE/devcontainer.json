@@ -1,7 +1,11 @@
 {
   "name": "CAP - MandE - AVD GH Containerlab-Docker-Ouside-Docker",
   "image": "ghcr.io/wdion-arista/ceos-act-projects/base:avd-v6.1.0-v1.1.4",
+  "containerEnv": {
+      "PROJECT": "MandE"
+  },
   "runArgs": [
+    "--name", "cap-MandE",
     "--network=host",
     "--pid=host",
     "--privileged",
