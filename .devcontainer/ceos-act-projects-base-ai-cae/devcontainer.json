@@ -1,10 +1,8 @@
 {
-  "name": "CAP - MandE - AVD GH Containerlab-Docker-Outside-Docker (AI)",
-  // echo "YOUR_PAT_TOKEN" | sudo docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+  "name": "CAP - CAE - AVD GH Containerlab-Docker-Outside-Docker (AI)",
+  "workspaceFolder": "${localWorkspaceFolder}/labs/cae",
   // "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:wdion_new_base",
   "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:avd-v6.1.0-v1.1.4",
-  // "image": "ghcr.io/wdion-arista/ceos-act-projects/base-ai:v1.1.2",
-  "workspaceFolder": "${localWorkspaceFolder}/labs/MandE",  
   "containerEnv": {
       "ARISTA_TOKEN": "${localEnv:ARTOKEN}",
       "CEOS_LAB_VERSION": "4.36.0F",
@@ -14,8 +12,7 @@
       "GITHUB_REPOSITORY": "${localEnv:GITHUB_REPOSITORY}",
       "PASSWORD": "${localEnv:CODER_PASSWORD}",
       "GIT_INIT": "false",
-      "CODE_SERVER_BIND_ADDR": "0.0.0.0:8182",
-      "PROJECT": "MandE"
+      "PROJECT": "cae"
   },
   "secrets": {
       "ARTOKEN": {
@@ -38,7 +35,7 @@
     "source=${localEnv:HOME}/.ai-proxy-api-key,target=/home/avd/.ai-proxy-api-key,type=bind,readonly",
     "source=${localEnv:HOME}/.claude,target=/home/avd/.claude,type=bind,consistency=cached",
     // "source=claude-native,target=/home/avd/.local/share/claude,type=volume"
-    "source=${localWorkspaceFolder}/.claude/skills,target=${localWorkspaceFolder}/labs/MandE/.claude/skills,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.claude/skills,target=${localWorkspaceFolder}/labs/cae/.claude/skills,type=bind,readonly",
     "source=${localEnv:HOME}/.gitconfig,target=/home/avd/.gitconfig,type=bind,readonly",
     "source=${localEnv:HOME}/.config/gh,target=/home/avd/.config/gh,type=bind,consistency=cached"
   ],
