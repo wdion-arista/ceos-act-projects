@@ -822,6 +822,41 @@ containerlab-deploy: ## CONTAINERLAB - Deploy containerlab ceos locally or on DO
 	done
 	$(MAKE) clab-fqdn-add-host-file
 
+.PHONY: containerlab-deploy-filter
+containerlab-deploy-filter: ## CONTAINERLAB - Deploy only nodes listed in clab-filter.yml
+	$(MAKE) setup-bridge
+	@FILTER_FILE="$(HOME_DIR)/clab-filter.yml"; \
+	if [ ! -f "$$FILTER_FILE" ]; then \
+		echo "Error: $$FILTER_FILE not found. Create it with a 'nodes:' list."; \
+		exit 1; \
+	fi; \
+	NODE_FILTER=$$(yq -r '.nodes | join(",")' "$$FILTER_FILE"); \
+	if [ -z "$$NODE_FILTER" ]; then \
+		echo "Error: No nodes found in $$FILTER_FILE"; \
+		exit 1; \
+	fi; \
+	echo "Node filter: $$NODE_FILTER"; \
+	echo "This Makefile's command: $(SITES)"; \
+	for dir in $(SITES); do \
+		if [ -d "$(HOME_DIR)/$$dir" ]; then \
+			set -a; \
+			source "$(HOME_DIR)/$(ENV_FILE)"; \
+			REMOTE_BASE=$${DOCKER_REMOTE_REPOROOT:-~/repos/$(REPO_NAME)}; \
+			REMOTE_WORKDIR=$${DOCKER_REMOTE_WORKDIR:-$$REMOTE_BASE/$(LAB_PARENT)/$(LAB_NAME)}; \
+			echo "--- Entering $$dir ---"; \
+			if [ -n "$$DOCKER_REMOTE_ADDRESS" ]; then \
+				echo "Running clab on remote: $$DOCKER_REMOTE_ADDRESS"; \
+				ssh $$DOCKER_REMOTE_ADDRESS "cd $$REMOTE_WORKDIR/$$dir/clab && clab deploy --node-filter $$NODE_FILTER $(ANSIBLE_ARGS)"; \
+			else \
+				cd "$(HOME_DIR)/$$dir/clab"; \
+				clab deploy --node-filter $$NODE_FILTER $(ANSIBLE_ARGS); \
+			fi; \
+		else \
+			echo "Warning: Directory '$$dir' not found. Skipping."; \
+		fi; \
+	done
+	$(MAKE) clab-fqdn-add-host-file
+
 .PHONY: containerlab-destroy
 containerlab-destroy: ## CONTAINERLAB - Destroy containerlab ceos locally or on DOCKER_REMOTE_ADDRESS
 
